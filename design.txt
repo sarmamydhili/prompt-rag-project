@@ -1,0 +1,11 @@
+PDF
+ ↓
+Extract Text + Check Images
+ ↓
+Extracted Chunk + diagram_required: True/False
+ ↓
+Send to ChatGPT Structuring
+ ↓
+Structured Questions + Diagram Flag
+ ↓
+Store in MongoDB + Chroma
