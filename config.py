@@ -4,14 +4,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file if present
 load_dotenv()
 
-# === OpenAI Settings ===
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # From your .env
-EMBEDDING_MODEL = "text-embedding-ada-002"
-LLM_MODEL = "gpt-4-turbo"  # or gpt-3.5-turbo if you want cheaper parsing
-
-
-LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2')
-LANGCHAIN_API_KEY = os.getenv('LANGCHAIN_API_KEY')
+# === API Credentials ===
+# OpenAI API credentials
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Anthropic API credentials
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
@@ -22,22 +17,27 @@ DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 # Gemini API credentials
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
-
+# LangChain API credentials
+LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2')
+LANGCHAIN_API_KEY = os.getenv('LANGCHAIN_API_KEY')
 
 # === MongoDB Settings ===
-MONGO_URI = "mongodb://localhost:27017/"
-MONGO_DB_NAME = "prompt_project"
-MONGO_COLLECTION_NAME = "input_questions"
+MONGODB_SERVER = os.getenv("MONGODB_SERVER", "127.0.0.1")
+MONGODB_PORT = os.getenv("MONGODB_PORT", "27017")
+MONGODB_USER = os.getenv("MONGODB_USER", "")
+MONGODB_PASSWORD = os.getenv("MONGODB_PASSWORD", "")
 
-# === Chroma Vector DB Settings ===
-CHROMA_COLLECTION_NAME = "questions_collection"
+# Construct MongoDB URI
+MONGO_URI = f"mongodb://{MONGODB_SERVER}:{MONGODB_PORT}/"
+if MONGODB_USER and MONGODB_PASSWORD:
+    MONGO_URI = f"mongodb://{MONGODB_USER}:{MONGODB_PASSWORD}@{MONGODB_SERVER}:{MONGODB_PORT}/"
 
-# === PDF Data Settings ===
-PDF_PATH = "data/questions.pdf"
+# === MySQL Settings ===
+mysql_host = os.getenv("MYSQL_HOST", "localhost") 
+mysql_user = os.getenv("MYSQL_USER", "root")
+mysql_password = os.getenv("MYSQL_PASSWORD", "")
+mysql_database = os.getenv("MYSQL_DATABASE", "adaptive_learning")
 
-# === Prompt Settings ===
-PROMPT_TEMPLATE_PATH = "prompts/structure_prompt.txt"
-
-# === General Settings ===
-CHUNK_SIZE = 3000  # Characters per chunk when splitting PDF text
-TEMPERATURE = 0.2  # LLM generation temperature (lower = more deterministic)
+# ======== Logging Configuration ========
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %(message)s") 
