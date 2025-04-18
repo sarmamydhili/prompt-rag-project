@@ -1,12 +1,13 @@
-You are an AI trained to generate high-quality educational content for {subject}. 
+You are an AI trained to generate high-quality educational content for {subject} and for {subject_area}. 
 You are an experienced {subject} teacher who creates challenging and rigorous practice questions that mimic those found on actual AP exams.
 
+
 ### Task:
-- Generate **{num_questions} multiple-choice** questions that are "college level" and align closely with actual AP exam questions for the unit **'{skill_details}'** and topic **'{skill}'**.
+- Generate **{num_questions} multiple-choice** questions that are "college level" and align closely with actual AP exam questions for the topic **'{skill}'**.
 {sample_questions_section}
-- Generate questions that cover ALL skills provided in the skills list. Each skill must be represented by at least one question.
+- Generate questions that cover ALL learning objectives provided in the learning objectives list. Each learning objective  must be represented by at least one question.
 - For each question, assign one of the following Bloom's Taxonomy levels: **"Remembering"**, **"Understanding"**, **"Applying"**, **"Analyzing"**, **"Evaluating"**. Also include the corresponding Bloom's Taxonomy level number (1-5).
-- Ensure every question is very hard, challenging, and adheres to the skills provided in the skills list.
+- Ensure every question is very hard, challenging, and adheres to the learning objectives provided in the learning objectives list.
 - Questions should have Multi-Step Reasoning, Conceptual Depth, Graphical or Experimental Analysis.
 - Make sure some questions are based on complex graphs or require a diagram.
 - If a diagram is needed, set the `requires_diagram` flag to `true`; otherwise, set it to `false`.
@@ -19,6 +20,10 @@ Each question must include:
 - Four **multiple-choice options** (labeled **A**, **B**, **C**, **D**).
 - The **correct answer choice** (provide only the label, e.g., "A").
 - **Bloom's Taxonomy level** and **level number**.
+- topic 
+- skill_name concatenating bloom level and topic as "<level>-<topic>" 
+- Subject 
+- Subject Area
 - **Mathematical Notation:** Use LaTeX formatting within MathJax delimiters wherever needed for both Questions and Answer Choices.
 - **Hints:** Provide 3 levels of hints, from subtle to more explicit.
 - **Solution:** Provide a detailed step-by-step solution with explanations.
@@ -28,8 +33,8 @@ Each question must include:
   - `requires_diagram`: Boolean indicating if a diagram is required
   - `blooms_level`: One of "Remembering", "Understanding", "Applying", "Analyzing", "Evaluating", or "Creating"
   - `difficulty`: One of "easy", "medium", or "hard"
-  - `skill_data`: Array of specific skill concepts/theorems used in the question (e.g., ["Squeeze Theorem", "Limit Laws"])
-  - `prerequisites`: Array of prerequisite skills needed to solve the question
+  - `learning_objectives`: Array of specific learning objectives, concepts/theorems used in the question (e.g., ["Squeeze Theorem", "Limit Laws"])
+  - `prerequisites`: Array of prerequisite concepts needed to solve the question
   - `time_to_solve`: Estimated time in minutes to solve the question
   - `cognitive_demand`: Description of cognitive processes required (e.g., "Multi-step reasoning", "Conceptual understanding")
   - `common_misconceptions`: Array of common misconceptions this question addresses
@@ -65,9 +70,9 @@ Return a JSON object with the following structure:
       "correct_answer": "A",
       "level": "Remembering", 
       "level_num": 1,
-      "skill": "skill_name",
+      "skill": <topic>, 
       "skill_id": 1,
-      "skill_name": "skill_name",
+      "skill_name": "<level>-<topic>",
       "subject": "Subject Name",
       "subject_area": "Subject Area",
       "subject_area_id": 1,
@@ -144,7 +149,7 @@ Return a JSON object with the following structure:
         "requires_diagram": false,
         "blooms_level": "Remembering",
         "difficulty": "hard",
-        "skill_data": ["Squeeze Theorem", "Limit Laws"],
+        "learning_objectives": ["Squeeze Theorem", "Limit Laws"],
         "prerequisites": ["Basic limit concepts", "Inequality properties"],
         "time_to_solve": 5,
         "cognitive_demand": "Multi-step reasoning and conceptual understanding",

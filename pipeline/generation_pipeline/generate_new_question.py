@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 # Third-party imports
 import numpy as np
 from pymongo import MongoClient
-import mysql.connector
 from tqdm import tqdm
 
 # Local imports
@@ -261,11 +260,11 @@ class GlobalContext:
                 print(f"{i}. {topic}")
             return topics, skill_details
 
-    def extract_skills_for_topic(self, additional_details, topic_name):
-        for detail in additional_details:
-            if detail.get("Topic") == topic_name and "Suggested_Skills" in detail:
-                return detail["Suggested_Skills"]
-        return []
+    #def extract_skills_for_topic(self, additional_details, topic_name):
+    #    for detail in additional_details:
+    #        if detail.get("Topic") == topic_name and "Suggested_Skills" in detail:
+    #              return detail["Suggested_Skills"]
+    #    return []
 
     def get_skill_topic_parameters(self, skills_data):
         """
@@ -283,6 +282,9 @@ class GlobalContext:
         for skill_data in skills_data:
             print(f"\nProcessing skill: {skill_data['skill_name']}")
             
+            # Initialize learning_objectives with empty list
+            learning_objectives = []
+            
             # Get the additional details
             additional_details = skill_data.get('skill_additional_details', {})
             if not additional_details:
@@ -296,33 +298,37 @@ class GlobalContext:
                 print(json.dumps(details, indent=2))
                 
                 # Use unit as the topic
-                topic_name = details.get('unit')
-                if not topic_name:
+                skill = details.get('unit')
+                if not skill:
                     print("Warning: No unit found in additional details")
                     continue
                     
-                print(f"\nUsing unit as topic: {topic_name}")
+                print(f"\nUsing unit as topic: {skill}")
                 
                 # Get objectives as suggested skills
-                suggested_skills = []
                 if 'objectives' in details:
                     for objective in details['objectives']:
                         if 'description' in objective:
-                            suggested_skills.append(objective['description'])
+                            learning_objectives.append(objective['description'])
                             print(f"Added suggested skill: {objective['description']}")
                 
                 skill_topic_params.append({
                     'skill_id': skill_data["skill_id"],
-                    'skill_name': skill_data["skill_name"],
-                    'topic_name': topic_name,
-                    'suggested_skills': suggested_skills
+                    'skill': skill_data["skill_name"],
+                    'learning_objectives': learning_objectives
                 })
                 
-                print(f"\nAdded parameters for topic: {topic_name}")
-                print(f"Number of suggested skills: {len(suggested_skills)}")
+                print(f"\nAdded parameters for skill: {skill}")
+                print(f"Number of suggested skills: {len(learning_objectives)}")
                 
             except json.JSONDecodeError as e:
                 print(f"Error parsing additional details: {e}")
+                # Even if parsing fails, we still add the skill with empty learning_objectives
+                skill_topic_params.append({
+                    'skill_id': skill_data["skill_id"],
+                    'skill': skill_data["skill_name"],
+                    'learning_objectives': learning_objectives
+                })
                 continue
                 
         print(f"\nTotal skill-topic parameters created: {len(skill_topic_params)}")
@@ -378,87 +384,7 @@ class GlobalContext:
         
         return total_sim
 
-    def fetch_sample_question_embeddings(self, skill_topic_params):
-        """
-        Fetch sample questions using QuestionRetriever with enhanced similarity matching
-        Args:
-            skill_topic_params: List of dictionaries containing skill and topic information
-        Returns:
-            List of dictionaries containing skill, topic, and their corresponding sample questions
-        """
-        if not self.use_sample_questions:
-            return [{
-                'skill_id': params['skill_id'],
-                'skill_name': params['skill_name'],
-                'topic_name': params['topic_name'],
-                'sample_questions': []
-            } for params in skill_topic_params]
-
-        retriever = QuestionRetriever()
-        sample_questions = []
-        
-        for params in skill_topic_params:
-            # Get similar questions using QuestionRetriever
-            similar_questions = retriever.find_similar_questions(
-                subject=params['skill_data']['subject'],
-                skill=params['skill_name'],
-                topic=params['topic_name'],
-                n_results=self.num_sample_questions * 2  # Get more questions for filtering
-            )
-            
-            # Format and enhance questions with additional metadata
-            formatted_questions = []
-            for question in similar_questions:
-                # Calculate question complexity metrics
-                question_text = question.question_text
-                word_count = len(question_text.split())
-                has_math = any(char in question_text for char in ['∫', '∑', '√', 'θ', 'π'])
-                has_diagram = any(word in question_text.lower() for word in ['diagram', 'figure', 'graph', 'plot'])
-                
-                formatted_question = {
-                    'question_text': question.question_text,
-                    'multiple_choices': question.multiple_choices,
-                    'correct_answer': question.correct_answer,
-                    'skill': question.skill,
-                    'topic': question.topic,
-                    'metadata': {
-                        'word_count': word_count,
-                        'has_math_notation': has_math,
-                        'requires_diagram': has_diagram,
-                        'num_choices': len(question.multiple_choices),
-                        'blooms_level': question.metadata.get('blooms_level', 'Analyzing'),
-                        'difficulty': question.metadata.get('difficulty', 'medium')
-                    }
-                }
-                formatted_questions.append(formatted_question)
-            
-            # Sort questions by similarity score
-            if formatted_questions:
-                # Calculate similarity scores for each question
-                similarity_scores = []
-                for q in formatted_questions:
-                    score = self.calculate_question_similarity(q, {
-                        'topic': params['topic_name'],
-                        'skill': params['skill_name'],
-                        'difficulty': params.get('difficulty', 'medium')
-                    })
-                    similarity_scores.append(score)
-                
-                # Sort questions by similarity score
-                sorted_questions = [q for _, q in sorted(zip(similarity_scores, formatted_questions), reverse=True)]
-                # Take top N questions
-                top_questions = sorted_questions[:self.num_sample_questions]
-            else:
-                top_questions = []
-            
-            sample_questions.append({
-                'skill_id': params['skill_id'],
-                'skill_name': params['skill_name'],
-                'topic_name': params['topic_name'],
-                'sample_questions': top_questions
-            })
-        
-        return sample_questions
+    
 
     def prepare_llm_parameters(self, skill_topic_params, sample_questions):
         """
@@ -475,7 +401,7 @@ class GlobalContext:
         
         parameters_list = []
         for params in skill_topic_params:
-            print(f"\nProcessing parameters for skill: {params['skill_name']}")
+            print(f"\nProcessing parameters for skill: {params['skill']}")
             
             llm_params = {
                 'subject_id': None,
@@ -483,9 +409,9 @@ class GlobalContext:
                 'subject_area_id': None,
                 'subject_area': params.get('subject_area', 'Calculus'),  # Default to Calculus if not present
                 'skill_id': params['skill_id'],
-                'skill_details': params['topic_name'],
-                'skill_name': params['skill_name'],
-                'skills_list': params['suggested_skills'],
+                #'skill_details': params['topic_name'],
+                'skill': params['skill'],
+                'learning_objectives': params['learning_objectives'],
                 'num_questions': self.num_questions
             }
             
@@ -498,32 +424,46 @@ class GlobalContext:
             
             parameters_list.append({
                 'skill_id': params['skill_id'],
-                'skill_name': params['skill_name'],
-                'topic_name': params['topic_name'],
+                #'skill_name': params['skill_name'],
+                'skill': params['skill'],
                 'parameters': llm_params
             })
             
-            print(f"Added parameters for topic: {params['topic_name']}")
+            print(f"Added parameters for topic: {params['skill']}")
         
         print(f"\nTotal parameter sets created: {len(parameters_list)}")
         print("="*50 + "\n")
         return parameters_list
 
-    def generate_content(self, parameters):
+    def get_prompts(self, parameters):
         """
-        Generate content using LLM with the given parameters
+        Get system and user prompts from prompt builder
         Args:
-            parameters (dict): Parameters for content generation
+            parameters (dict): Parameters for prompt generation
         Returns:
-            str: Generated content or None if generation fails
+            tuple: (system_prompt, user_prompt) or (None, None) if failed
         """
         try:
             # Get prompts from prompt builder
             system_prompt, user_prompt = self.prompt_builder.create_prompts(parameters)
             if system_prompt is None or user_prompt is None:
                 print("Error: Could not create prompts.")
-                return None
+                return None, None
+            return system_prompt, user_prompt
+        except Exception as e:
+            print(f"Error in get_prompts: {str(e)}")
+            return None, None
 
+    def generate_content_from_llm(self, system_prompt, user_prompt):
+        """
+        Generate content using LLM with the given prompts
+        Args:
+            system_prompt (str): System prompt for the LLM
+            user_prompt (str): User prompt for the LLM
+        Returns:
+            str: Generated content or None if generation fails
+        """
+        try:
             # Call LLM API
             print("\nCalling LLM API...")
             ai_response_content = call_llm_api("openai", system_prompt, user_prompt)
@@ -565,7 +505,7 @@ class GlobalContext:
                 return None
 
         except Exception as e:
-            print(f"Error in generate_content: {str(e)}")
+            print(f"Error in generate_content_from_prompts: {str(e)}")
             return None
 
     def store_output_to_file(self, topic_name, skill_name, content):
@@ -575,7 +515,7 @@ class GlobalContext:
             filepath = os.path.join("generated_questions", filename)
             with open(filepath, 'w') as f:
                 f.write(content)
-            
+            print(f"✅ Content written to file: {filepath}")
 
     def store_output_to_mongo(self, content, skill_id):
         if content:
@@ -597,50 +537,53 @@ class GlobalContext:
                 print(f"JSON decoding failed: {e}")
                 print("Raw API response that caused the error:\n", content)
 
-    def generate_content_from_llm(self, llm_prompt_parameters_list, sample_questions):
-        """
-        Generate content using LLM for each set of parameters and sample questions
-        Args:
-            llm_prompt_parameters_list: List of dictionaries containing LLM parameters
-            sample_questions: List of dictionaries containing sample questions
-        Returns:
-            List of tuples containing (skill_id, skill_name, topic_name, content)
-        """
-        all_contents = []
-        
-        # If sample_questions is empty, just use the parameters list
-        if not sample_questions or len(sample_questions) == 0:
-            print("No sample questions provided - generating content without samples")
-            for params in llm_prompt_parameters_list:
-                content = self.generate_content(params['parameters'])
-                if content:
-                    all_contents.append((
-                        params['skill_id'],
-                        params['skill_name'],
-                        params['topic_name'],
-                        content
-                    ))
-        else:
-            # If we have sample questions, use them with the parameters
-            for params, samples in zip(llm_prompt_parameters_list, sample_questions):
-                content = self.generate_content(params['parameters'])
-                if content:
-                    all_contents.append((
-                        params['skill_id'],
-                        params['skill_name'],
-                        params['topic_name'],
-                        content
-                    ))
-        
-        return all_contents
-
     def write_content(self, contents):
-        for skill_id, skill_name, topic_name, content in contents:
+        """Write generated content to a JSON file or MongoDB based on output_mode."""
+        try:
             if self.output_mode == "file":
-                self.store_output_to_file(topic_name, skill_name, content)
+                # Generate dynamic filename
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                subject = getattr(self, 'subject', 'general')
+                output_filename = f"questions_{subject}_{timestamp}.json"
+                output_path = os.path.join("generated_questions", output_filename)
+                
+                # Create directory if it doesn't exist
+                os.makedirs("generated_questions", exist_ok=True)
+                
+                # Parse each content string and combine all questions
+                all_questions = []
+                for content in contents:
+                    try:
+                        parsed_content = json.loads(content)
+                        if 'questions' in parsed_content:
+                            all_questions.extend(parsed_content['questions'])
+                    except json.JSONDecodeError as e:
+                        print(f"Error parsing content: {e}")
+                        continue
+                
+                # Write all questions to file
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump({"questions": all_questions}, f, indent=2, ensure_ascii=False)
+                
+                print(f"✅ Content written to {output_path}")
+            
             elif self.output_mode == "mongo":
-                self.store_output_to_mongo(content, skill_id)
-            print(f"✅ Content generated and stored for topic: {topic_name}")
+                for content in contents:
+                    try:
+                        parsed_content = json.loads(content)
+                        if 'questions' in parsed_content:
+                            for question in parsed_content['questions']:
+                                if 'skill_id' in question:
+                                    self.store_output_to_mongo(json.dumps({"questions": [question]}), question['skill_id'])
+                    except json.JSONDecodeError:
+                        print(f"Error parsing content for MongoDB storage")
+            
+            else:
+                raise ValueError(f"Invalid output_mode: {self.output_mode}")
+            
+        except Exception as e:
+            print(f"❌ Error writing content: {str(e)}")
+            raise
 
 # ------------------ Main Workflow ------------------
 
@@ -661,35 +604,40 @@ def main():
         # Step 2: Resolve skills
         print("Resolving skills...")
         skills_data = context.resolve_skills_from_context()
-        #print(f"Skills data: {skills_data}")
         if not skills_data:
             raise ValueError("No skills data found for the given context")
        
-        # Step 3: Prepare parameters and generate content
-        #print("Preparing parameters...")
+        # Step 3: Prepare parameters
         skill_topic_params = context.get_skill_topic_parameters(skills_data)
         print(f"Skill topic parameters: {skill_topic_params}")
         
-        # Step 3.1: Fetch sample questions using QuestionRetriever
-        #print("Fetching sample questions...")
-        #sample_questions = context.fetch_sample_question_embeddings(skill_topic_params)
-        sample_questions = []
-        
-        # Step 3.2: Prepare LLM parameters with sample questions
+        # Step 4: Prepare LLM parameters
         print("Preparing LLM parameters...")
-        llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, sample_questions)
+        llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, [])
         print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
-        '''
-        # Step 3.3: Generate content using LLM with sample questions
+        
+        # Step 5: Generate content
         print("Generating content...")
-        all_contents = context.generate_content_from_llm(llm_prompt_parameters_list, sample_questions)
-
-        # Step 4: Write content
+        all_contents = []
+        for params in llm_prompt_parameters_list:
+            # Get prompts
+            system_prompt, user_prompt = context.get_prompts(params['parameters'])
+            if system_prompt is None or user_prompt is None:
+                print(f"Failed to get prompts for skill: {params['skill']}")
+                continue
+            print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
+            # Generate content
+            content = context.generate_content_from_llm(system_prompt, user_prompt)
+            if content:
+                all_contents.append(content)
+        #=print(f"All contents: {all_contents}")
+        
+        # Step 6: Write content
         print("Writing content...")
         context.write_content(all_contents)
-
+        
         print("✅ Question Generation Completed.")
-        '''
+      
     except Exception as e:
         print(f"❌ Error in main workflow: {str(e)}")
         raise

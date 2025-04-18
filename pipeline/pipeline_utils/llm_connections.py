@@ -116,7 +116,7 @@ def _call_openai_api(system_prompt, user_prompt):
         
         print('OpenAI API call successful.')
         ai_response_content = completion.choices[0].message.content
-        print('AI response received.', ai_response_content)
+        #print('AI response received.', ai_response_content)
         return ai_response_content
     except Exception as e:
         print(f"Error during OpenAI API call or processing: {e}")
