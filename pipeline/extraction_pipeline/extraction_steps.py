@@ -1,7 +1,13 @@
+import sys
+import os
+
+# Add the project root to the Python path
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
+
 # Standard library imports
 import json
 import datetime
-import os
 from dotenv import load_dotenv
 from typing import List, Dict, Optional
 
@@ -81,22 +87,29 @@ class ExtractionPipeline:
     def extract(self, pdf_path=None):
         print("🔎 Extracting text and checking for diagrams...")
         pdf_path = pdf_path or self.pdf_config["path"]
-        extracted_pages = extract_text_and_flag(pdf_path)
+        alignment_path = self.pdf_config.get("alignment_path")
+        
+        if alignment_path:
+            print(f"📄 Using alignment data from: {alignment_path}")
+        else:
+            print("⚠️ No alignment file specified in config")
+            
+        extracted_pages = extract_text_and_flag(pdf_path, alignment_path)
         return extracted_pages
 
     def structure(self, extracted_pages, system_prompt, user_prompt):
         """
-        Structure the extracted pages into questions using the provided prompts.
+        Structure the extracted pages into questions with metadata using the provided prompts.
         
         Args:
             extracted_pages: List of extracted pages with text and diagram flags
             system_prompt: The system prompt to use for LLM
             user_prompt: The user prompt template to use for LLM
         """
-        print("🛠️ Structuring text...")
+        print("🛠️ Structuring text and extracting metadata...")
         all_questions = []
 
-        for page in tqdm(extracted_pages, desc="Structuring Pages"):
+        for page in tqdm(extracted_pages, desc="Processing Pages"):
             text = page["text"]
             diagram_flag = page["diagram_required"]
             
@@ -104,14 +117,41 @@ class ExtractionPipeline:
             formatted_user_prompt = user_prompt.format(
                 text=text,
                 diagram_required=diagram_flag,
-                topic=self.task_config["subject"],
-                skill="",  # TODO: Add skill from config
-                level="Analyzing"  # TODO: Add level from config
+                topic=self.task_config["subject"]
             )
             
             response = call_llm_api("openai", system_prompt, formatted_user_prompt)
-            questions = structure_questions_from_chunk(response, diagram_flag, "openai")
-            all_questions.extend(questions)
+            print('Response from LLM:', response)
+            
+            try:
+                # Parse the response as JSON
+                question_data = json.loads(response)
+                
+                # Add alignment information
+                question_data.update({
+                    "diagram_required": diagram_flag,
+                    "model_used": "openai",
+                    "source": "college_board",
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "alignment": {
+                        "answer": page.get("answer", ""),
+                        "skill": page.get("skill", ""),
+                        "learning_objective": page.get("learning_objective", ""),
+                        "unit": page.get("unit", None)
+                    }
+                })
+                
+                # Add question number if available
+                if page.get("question_number"):
+                    question_data["question_number"] = page["question_number"]
+                
+                all_questions.append(question_data)
+                print('Processed question with metadata:', question_data)
+                
+            except json.JSONDecodeError as e:
+                print(f"Error parsing LLM response: {e}")
+                print("Raw response:", response)
+                continue
 
         return all_questions
 
@@ -119,33 +159,45 @@ class ExtractionPipeline:
         print("💾 Embedding and saving questions...")
 
         for q in tqdm(structured_questions, desc="Saving Questions"):
-            # Save to MongoDB and get ID
-            question_id = save_to_mongodb(
-                q,
-                self.mongo_db,
-                self.db_config["mongo_questions_collection"]
-            )
+            try:
+                # Save to MongoDB and get ID
+                question_id = save_to_mongodb(
+                    q,
+                    self.mongo_db,
+                    self.db_config["mongo_questions_collection"]
+                )
 
-            # Prepare metadata for Chroma
-            metadata = {
-                "multiple_choices": q.get("multiple_choices", []),
-                "correct_answer": q.get("correct_answer", ""),
-                "level": q.get("level", "Remembering"),
-                "level_num": q.get("level_num", 1),
-                "skill": q.get("skill", ""),
-                "skill_id": q.get("skill_id", 0),
-                "skill_name": q.get("skill_name", ""),
-                "subject": q.get("subject", ""),
-                "subject_area": q.get("subject_area", ""),
-                "subject_area_id": q.get("subject_area_id", 0),
-                "subject_id": q.get("subject_id", 0),
-                "diagram_required": q.get("diagram_required", False),
-                "source": "college_board",
-                "timestamp": datetime.datetime.now().isoformat()
-            }
+                # Prepare metadata for Chroma
+                metadata = {
+                    "topic": q["metadata"].get("topic", ""),
+                    "keywords": q["metadata"].get("keywords", []),
+                    "blooms_level": q["metadata"].get("blooms_level", ""),
+                    "concepts_tested": q["metadata"].get("concepts_tested", []),
+                    "difficulty": q["metadata"].get("difficulty", ""),
+                    "prerequisites": q["metadata"].get("prerequisites", []),
+                    "question_type": q["metadata"].get("question_type", ""),
+                    "common_misconceptions": q["metadata"].get("common_misconceptions", []),
+                    "solution_strategy": q["metadata"].get("solution_strategy", ""),
+                    "time_estimate": q["metadata"].get("time_estimate", ""),
+                    "real_world_applications": q["metadata"].get("real_world_applications", []),
+                    "cross_curricular_connections": q["metadata"].get("cross_curricular_connections", []),
+                    "diagram_required": q.get("diagram_required", False),
+                    "source": "college_board",
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    # Add alignment information
+                    "answer": q["alignment"].get("answer", ""),
+                    "skill": q["alignment"].get("skill", ""),
+                    "learning_objective": q["alignment"].get("learning_objective", ""),
+                    "unit": q["alignment"].get("unit", None),
+                    "question_number": q.get("question_number", None)
+                }
 
-            # Save to Chroma
-            save_to_chroma(q["question"], question_id, metadata)
+                # Save to Chroma
+                save_to_chroma(q["question"], question_id, metadata)
+                
+            except Exception as e:
+                print(f"Error processing question: {e}")
+                continue
 
     def main(self, pdf_path=None):
         """
@@ -156,6 +208,7 @@ class ExtractionPipeline:
         """
         try:
             print("🚀 Starting pipeline...")
+            pdf_path = "data/ap-calculus-ab-and-bc-sample_questions.pdf" 
             
             # Step 1: Extract text from PDF
             print("\n📄 Step 1: Extracting text...")
@@ -186,7 +239,7 @@ class ExtractionPipeline:
                 print(f"Correct Answer: {q['correct_answer']}")
                 print(f"Level: {q['level']}")
                 print(f"Diagram Required: {q['diagram_required']}")
-            
+            '''
             # Step 4: Save to databases
             print("\n💾 Step 4: Saving questions...")
             self.embed_and_save(structured_questions)
@@ -196,11 +249,11 @@ class ExtractionPipeline:
             print(f"- Embedded {len(structured_questions)} questions in Chroma")
             
             print("\n✨ Pipeline completed successfully!")
-            
+           '''
+  
         except Exception as e:
             print(f"❌ Error in pipeline: {str(e)}")
             raise
-
 if __name__ == "__main__":
     # Example usage
     pipeline = ExtractionPipeline()

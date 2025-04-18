@@ -9,24 +9,13 @@ Generate **{num_questions} hard and challenging college-level multiple-choice qu
 - **Skill List**: 
 {skills_list}
 
-{% if sample_questions %}
-**Reference Questions:**
-Use these sample questions as a guide for difficulty level, style, and format:
-{sample_questions}
-
-Pay special attention to:
-1. Question structure and complexity
-2. Use of mathematical notation
-3. Diagram requirements
-4. Bloom's Taxonomy levels
-5. Difficulty distribution
-{% endif %}
+{sample_questions_section}
 
 **IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
 
 **Instructions:**
 1. Ensure every question is highly challenging and directly related to the provided subject, topic, and skills.
-2. For each skill in the Skill List, generate difficult questions that test that specific skill.
+2. **CRITICAL: Generate questions that cover ALL skills listed in the Skill List above. Each skill must be represented by at least one question.**
 3. Questions must require Multi-Step Reasoning, Conceptual Depth, and Graphical or Experimental Analysis.
 4. Ensure:
    - High mathematical rigor typical of AP college-level subjects.
@@ -50,15 +39,15 @@ Pay special attention to:
 
 ### Required LaTeX Notation:
 Use the following LaTeX formatting inside **MathJax delimiters** for proper rendering.
-- **Exponents:** Use `x^{{2}}` (e.g., `\\( x^{{2}} \\)`). Complex: `x^{{2n + 1}}` (e.g., `\\( x^{{2n + 1}} \\)`). **Wrap expressions in MathJax delimiters:** Inline: `\\( v(t) = 3t^{{2}} - 12t + 9 \\)`, Block: `\\[ v(t) = 3t^{{2}} - 12t + 9 \\]`.
-- **Fractions:** Use `\\frac{{a}}{{b}}` (e.g., `\\( \\frac{{1}}{{2}} \\)`).
-- **Summation:** Use `\\sum_{{i=1}}^{{n}} x_i` (e.g., `\\( \\sum_{{i=1}}^{{n}} i \\)`).
-- **Products:** Use `\\prod_{{i=1}}^{{n}} x_i` (e.g., `\\( \\prod_{{i=1}}^{{n}} i \\)`).
-- **Square Roots:** Use `\\sqrt{{x}}` (e.g., `\\( \\sqrt{{4}} \\)`).
-- **Derivatives:** Use `\\frac{{d}}{{dx}} f(x)` (e.g., `\\( \\frac{{d}}{{dx}} x^{{2}} = 2x \\)`).
-- **Integrals:** Definite: `\\int_{{a}}^{{b}} f(x) \\,dx` (e.g., `\\( \\int_{{0}}^{{1}} x^{{2}} \\,dx \\)`). Indefinite: `\\int f(x) \\,dx` (e.g., `\\( \\int x^{{2}} \\,dx \\)`).
-- **Limits:** Use `\\lim_{{x \\to \\infty}} \\frac{{1}}{{x}}` (e.g., `\\( \\lim_{{x \\to \\infty}} \\frac{{1}}{{x}} \\)`).
-- **Greek Letters:** Use LaTeX symbols: `\\( \\alpha \\)`, `\\( \\beta \\)`, `\\( \\gamma \\)`, `\\( \\theta \\)`.
+- **Exponents:** Use `x^2` (e.g., `\( x^2 \)`). Complex: `x^{{2n + 1}}` (e.g., `\( x^{{2n + 1}} \)`). **Wrap expressions in MathJax delimiters:** Inline: `\( v(t) = 3t^2 - 12t + 9 \)`, Block: `\[ v(t) = 3t^2 - 12t + 9 \]`.
+- **Fractions:** Use `\frac{{a}}{{b}}` (e.g., `\( \frac{{1}}{{2}} \)`).
+- **Summation:** Use `\sum_{{i=1}}^{{n}} x_i` (e.g., `\( \sum_{{i=1}}^{{n}} i \)`).
+- **Products:** Use `\prod_{{i=1}}^{{n}} x_i` (e.g., `\( \prod_{{i=1}}^{{n}} i \)`).
+- **Square Roots:** Use `\sqrt{{x}}` (e.g., `\( \sqrt{{4}} \)`).
+- **Derivatives:** Use `\frac{{d}}{{dx}} f(x)` (e.g., `\( \frac{{d}}{{dx}} x^2 = 2x \)`).
+- **Integrals:** Definite: `\int_{{a}}^{{b}} f(x) \,dx` (e.g., `\( \int_{{0}}^{{1}} x^2 \,dx \)`). Indefinite: `\int f(x) \,dx` (e.g., `\( \int x^2 \,dx \)`).
+- **Limits:** Use `\lim_{{x \to \infty}} \frac{{1}}{{x}}` (e.g., `\( \lim_{{x \to \infty}} \frac{{1}}{{x}} \)`).
+- **Greek Letters:** Use LaTeX symbols: `\( \alpha \)`, `\( \beta \)`, `\( \gamma \)`, `\( \theta \)`.
 - **Matrices:**  
   ```latex
   \[

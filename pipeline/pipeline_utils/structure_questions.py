@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from llm_connections import LLMConnections
+from pipeline.pipeline_utils.llm_connections import call_llm_api
 import json
 import logging
 from typing import List, Dict, Optional
@@ -17,13 +17,23 @@ def parse_llm_response(response: str) -> List[Dict]:
         List of structured questions
     """
     try:
-        # Try to parse as JSON first
+        # Clean the response string - remove markdown code block if present
+        if response.startswith('```json'):
+            response = response[7:]  # Remove ```json
+        if response.endswith('```'):
+            response = response[:-3]  # Remove ```
+        response = response.strip()
+        
+        # Try to parse as JSON
         try:
             questions = json.loads(response)
             if isinstance(questions, list):
                 return questions
+            elif isinstance(questions, dict):
+                return [questions]
         except json.JSONDecodeError:
-            pass
+            logger.error("Failed to parse JSON response")
+            return []
 
         # If not JSON, try to parse as text
         questions = []
@@ -37,7 +47,7 @@ def parse_llm_response(response: str) -> List[Dict]:
             if line.startswith(('Q:', 'Question:', 'q:')):
                 if current_question:
                     questions.append(current_question)
-                current_question = {"question_text": line.split(':', 1)[1].strip()}
+                current_question = {"question": line.split(':', 1)[1].strip()}
             elif line.startswith(('A:', 'Answer:', 'a:')):
                 current_question["correct_answer"] = line.split(':', 1)[1].strip()
             elif line.startswith(('Options:', 'Choices:', 'options:')):

@@ -1,0 +1,19 @@
+Please analyze the following question and provide detailed metadata about it:
+
+Question Text:
+{text}
+
+Additional Context:
+- Diagram Required: {diagram_required}
+- Subject: {topic}
+
+Please provide a thorough analysis of this question, including:
+1. The main topic it belongs to
+2. Important keywords and concepts
+3. Bloom's taxonomy level
+4. Specific mathematical concepts being tested
+5. Difficulty level
+6. Prerequisites needed to solve it
+7. Question type
+
+Format your response as specified in the system prompt. 

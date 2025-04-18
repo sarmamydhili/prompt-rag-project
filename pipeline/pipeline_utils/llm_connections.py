@@ -106,15 +106,17 @@ def _call_openai_api(system_prompt, user_prompt):
         print('Calling OpenAI API for content generation...')
         client = OpenAI()
         completion = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
+                model="gpt-4o-2024-08-06",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.0
+            )
+        
         print('OpenAI API call successful.')
         ai_response_content = completion.choices[0].message.content
+        print('AI response received.', ai_response_content)
         return ai_response_content
     except Exception as e:
         print(f"Error during OpenAI API call or processing: {e}")
@@ -132,28 +134,13 @@ def call_llm_api(provider: str, system_prompt: str, user_prompt: str) -> Optiona
     """
     try:
         if provider == "openai":
-            response = openai_client.ChatCompletion.create(
-                model=LLM_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ]
-            )
-            return response.choices[0].message.content
+            return _call_openai_api(system_prompt, user_prompt)
         elif provider == "anthropic":
-            response = anthropic_client.messages.create(
-                model=LLM_MODEL,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}]
-            )
-            return response.content[0].text
+            return _call_anthropic_api(system_prompt, user_prompt)
         elif provider == "gemini":
-            model = genai.GenerativeModel(LLM_MODEL)
-            response = model.generate_content([system_prompt, user_prompt])
-            return response.text
+            return _call_gemini_api(system_prompt, user_prompt)
         elif provider == "deepseek":
-            response = _call_deepseek_api(system_prompt, user_prompt)
-            return response
+            return _call_deepseek_api(system_prompt, user_prompt)
         else:
             print(f"Unsupported provider: {provider}")
             return None
