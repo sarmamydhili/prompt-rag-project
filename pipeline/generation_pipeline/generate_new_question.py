@@ -543,6 +543,32 @@ class GlobalContext:
 
 # ------------------ Main Workflow ------------------
 
+def generate_content_with_llm(context, skill_topic_params, sample_questions_section):
+    """
+    Prepares LLM parameters and generates content using the LLM.
+    """
+    print("Preparing LLM parameters...")
+    llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, [])
+    print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
+    
+    print("Generating content...")
+    all_contents = []
+    for params in llm_prompt_parameters_list:
+        # Add sample questions section to parameters
+        params['parameters']['sample_questions_section'] = sample_questions_section
+        print(f"Sample questions section: {sample_questions_section}")
+        # Get prompts
+        system_prompt, user_prompt = context.get_prompts(params['parameters'])
+        if system_prompt is None or user_prompt is None:
+            print(f"Failed to get prompts for skill: {params['skill']}")
+            continue
+        print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
+        # Generate content
+        content = context.generate_content_from_llm(system_prompt, user_prompt)
+        if content:
+            all_contents.append(content)
+    return all_contents
+
 def main():
     try:
         # Step 1: Initialize Context
@@ -575,30 +601,11 @@ def main():
         if sample_questions_file:
             sample_questions_section = context._load_sample_questions(sample_questions_file)
         
-        # Step 5: Prepare LLM parameters
-        print("Preparing LLM parameters...")
-        llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, [])
-        print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
-        
-        # Step 6: Generate content
+        # Step 5: Generate content
         print("Generating content...")
-        all_contents = []
-        for params in llm_prompt_parameters_list:
-            # Add sample questions section to parameters
-            params['parameters']['sample_questions_section'] = sample_questions_section
-            print(f"Sample questions section: {sample_questions_section}")
-            # Get prompts
-            system_prompt, user_prompt = context.get_prompts(params['parameters'])
-            if system_prompt is None or user_prompt is None:
-                print(f"Failed to get prompts for skill: {params['skill']}")
-                continue
-            print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
-            #Generate content
-            content = context.generate_content_from_llm(system_prompt, user_prompt)
-            if content:
-                all_contents.append(content)
+        all_contents = generate_content_with_llm(context, skill_topic_params, sample_questions_section)
         
-        # Step 7: Write content
+        # Step 6: Write content
         print("Writing content...")
         context.write_content(all_contents)
         
