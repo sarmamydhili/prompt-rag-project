@@ -184,7 +184,7 @@ class GlobalContext:
                         "subject": result[4],
                         "task_name": result[5]
                     })
-                print(f"\nTotal skills found from task: {len(skills_data)}")
+                #print(f"\nTotal skills found from task: {len(skills_data)}")
                 return skills_data
 
             else:
@@ -194,7 +194,7 @@ class GlobalContext:
         finally:
             # Ensure cursor is closed
             cursor.close()
-
+    '''
     def read_topics_for_skill(self, skill_data):
         """
         Extract topics from skill_additional_details.
@@ -259,13 +259,8 @@ class GlobalContext:
             for i, topic in enumerate(topics, 1):
                 print(f"{i}. {topic}")
             return topics, skill_details
-
-    #def extract_skills_for_topic(self, additional_details, topic_name):
-    #    for detail in additional_details:
-    #        if detail.get("Topic") == topic_name and "Suggested_Skills" in detail:
-    #              return detail["Suggested_Skills"]
-    #    return []
-
+    '''
+  
     def get_skill_topic_parameters(self, skills_data):
         """
         Get skill and topic parameters for all skills.
@@ -315,6 +310,9 @@ class GlobalContext:
                 skill_topic_params.append({
                     'skill_id': skill_data["skill_id"],
                     'skill': skill_data["skill_name"],
+                    'subject_area': skill_data["subject_area"],
+                    'subject': skill_data["subject"],
+                    'task_name': skill_data["task_name"],
                     'learning_objectives': learning_objectives
                 })
                 
@@ -327,6 +325,9 @@ class GlobalContext:
                 skill_topic_params.append({
                     'skill_id': skill_data["skill_id"],
                     'skill': skill_data["skill_name"],
+                    'subject_area': skill_data["subject_area"],
+                    'subject': skill_data["subject"],
+                    'task_name': skill_data["task_name"],
                     'learning_objectives': learning_objectives
                 })
                 continue
@@ -404,12 +405,11 @@ class GlobalContext:
             print(f"\nProcessing parameters for skill: {params['skill']}")
             
             llm_params = {
-                'subject_id': None,
+                'subject_id': params['skill_id'],
                 'subject': params.get('subject', 'Mathematics'),  # Default to Mathematics if not present
-                'subject_area_id': None,
+                'subject_area_id': params.get('subject_area_id', None),
                 'subject_area': params.get('subject_area', 'Calculus'),  # Default to Calculus if not present
                 'skill_id': params['skill_id'],
-                #'skill_details': params['topic_name'],
                 'skill': params['skill'],
                 'learning_objectives': params['learning_objectives'],
                 'num_questions': self.num_questions
@@ -424,7 +424,6 @@ class GlobalContext:
             
             parameters_list.append({
                 'skill_id': params['skill_id'],
-                #'skill_name': params['skill_name'],
                 'skill': params['skill'],
                 'parameters': llm_params
             })
@@ -561,9 +560,9 @@ class GlobalContext:
                         print(f"Error parsing content: {e}")
                         continue
                 
-                # Write all questions to file
+                # Write all questions to file as an array
                 with open(output_path, 'w', encoding='utf-8') as f:
-                    json.dump({"questions": all_questions}, f, indent=2, ensure_ascii=False)
+                    json.dump(all_questions, f, indent=2, ensure_ascii=False)
                 
                 print(f"✅ Content written to {output_path}")
             
@@ -574,7 +573,7 @@ class GlobalContext:
                         if 'questions' in parsed_content:
                             for question in parsed_content['questions']:
                                 if 'skill_id' in question:
-                                    self.store_output_to_mongo(json.dumps({"questions": [question]}), question['skill_id'])
+                                    self.store_output_to_mongo(json.dumps([question]), question['skill_id'])
                     except json.JSONDecodeError:
                         print(f"Error parsing content for MongoDB storage")
             
@@ -584,6 +583,30 @@ class GlobalContext:
         except Exception as e:
             print(f"❌ Error writing content: {str(e)}")
             raise
+
+    def _load_sample_questions(self, sample_questions_file):
+        """
+        Load and format sample questions from JSON file
+        Args:
+            sample_questions_file: Path to the sample questions JSON file
+        Returns:
+            str: Formatted sample questions section or empty string if loading fails
+        """
+        try:
+            with open(sample_questions_file, 'r') as f:
+                sample_questions = json.load(f)
+            
+            if sample_questions and 'questions' in sample_questions:
+                # Format sample questions as a string
+                sample_questions_str = "\n".join([
+                    f"Question {i+1}: {q.get('question', '')}"
+                    for i, q in enumerate(sample_questions['questions'])
+                ])
+                return f"\n### Sample Questions:\n{sample_questions_str}"
+            return ""
+        except Exception as e:
+            print(f"Error loading sample questions from {sample_questions_file}: {e}")
+            return ""
 
 # ------------------ Main Workflow ------------------
 
@@ -604,6 +627,7 @@ def main():
         # Step 2: Resolve skills
         print("Resolving skills...")
         skills_data = context.resolve_skills_from_context()
+        print(f"Skills data: {skills_data}")
         if not skills_data:
             raise ValueError("No skills data found for the given context")
        
@@ -611,28 +635,36 @@ def main():
         skill_topic_params = context.get_skill_topic_parameters(skills_data)
         print(f"Skill topic parameters: {skill_topic_params}")
         
-        # Step 4: Prepare LLM parameters
+        # Step 4: Load sample questions if provided
+        sample_questions_section = ""
+        sample_questions_file = getattr(context, 'sample_questions_file', None)
+        if sample_questions_file:
+            sample_questions_section = context._load_sample_questions(sample_questions_file)
+        
+        # Step 5: Prepare LLM parameters
         print("Preparing LLM parameters...")
         llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, [])
         print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
         
-        # Step 5: Generate content
+        # Step 6: Generate content
         print("Generating content...")
         all_contents = []
         for params in llm_prompt_parameters_list:
+            # Add sample questions section to parameters
+            params['parameters']['sample_questions_section'] = sample_questions_section
+            
             # Get prompts
             system_prompt, user_prompt = context.get_prompts(params['parameters'])
             if system_prompt is None or user_prompt is None:
                 print(f"Failed to get prompts for skill: {params['skill']}")
                 continue
             print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
-            # Generate content
+            #Generate content
             content = context.generate_content_from_llm(system_prompt, user_prompt)
             if content:
                 all_contents.append(content)
-        #=print(f"All contents: {all_contents}")
         
-        # Step 6: Write content
+        # Step 7: Write content
         print("Writing content...")
         context.write_content(all_contents)
         
