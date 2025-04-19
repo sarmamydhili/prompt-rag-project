@@ -398,7 +398,7 @@ class GlobalContext:
         try:
             # Call LLM API
             print("\nCalling LLM API...")
-            ai_response_content = call_llm_api("anthropic", system_prompt, user_prompt)
+            ai_response_content = call_llm_api("openai", system_prompt, user_prompt)
             
             if not ai_response_content:
                 print("Error: No response from LLM API")
