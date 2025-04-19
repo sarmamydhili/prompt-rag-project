@@ -1,4 +1,4 @@
-Generate **{num_questions} hard and challenging college-level multiple-choice questions** for {subject} using the following parameters:
+Generate exactly **{num_questions} hard and challenging college-level multiple-choice questions** for {subject} using the following parameters:
 - **Subject**: {subject}
 - **Subject Area**: {subject_area}
 - **topic**: {skill}

@@ -192,74 +192,7 @@ class GlobalContext:
                 raise ValueError("Either skill_ids or task_name must be provided in context.")
 
         finally:
-            # Ensure cursor is closed
             cursor.close()
-    '''
-    def read_topics_for_skill(self, skill_data):
-        """
-        Extract topics from skill_additional_details.
-        Args:
-            skill_data: Dictionary containing skill information including skill_additional_details
-        Returns:
-            Tuple of (topics, additional_details) where:
-            - topics is a list of objective descriptions
-            - additional_details is the parsed JSON structure
-        """
-        print("\n" + "="*50)
-        print("Starting read_topics_for_skill")
-        print("="*50)
-        
-        print(f"\nInput skill_data:")
-        print(json.dumps(skill_data, indent=2))
-        
-        # Get the skill_additional_details
-        skill_details = skill_data.get('skill_additional_details', '')
-        print(f"\nRaw skill_details:")
-        print(skill_details)
-        
-        if not skill_details:
-            print("Warning: No skill_additional_details found")
-            return [], {}
-            
-        try:
-            # Parse the JSON string
-            additional_details = json.loads(skill_details)
-            print("\nParsed additional_details:")
-            print(json.dumps(additional_details, indent=2))
-            
-            # Extract topics from objectives
-            topics = []
-            if 'objectives' in additional_details:
-                print("\nProcessing objectives:")
-                for i, objective in enumerate(additional_details['objectives'], 1):
-                    print(f"\nObjective {i}:")
-                    print(json.dumps(objective, indent=2))
-                    if 'description' in objective:
-                        topics.append(objective['description'])
-                        print(f"Added topic: {objective['description']}")
-                    else:
-                        print("No description found in objective")
-            else:
-                print("\nNo objectives found in additional_details")
-            
-            print("\nExtracted topics:")
-            for i, topic in enumerate(topics, 1):
-                print(f"{i}. {topic}")
-            
-            print(f"\nTotal topics found: {len(topics)}")
-            print("="*50 + "\n")
-            return topics, additional_details
-            
-        except json.JSONDecodeError as e:
-            print(f"Error parsing additional_details as JSON: {e}")
-            print("Falling back to string splitting...")
-            # Fallback to string splitting if JSON parsing fails
-            topics = [topic.strip() for topic in skill_details.split(';')]
-            print("\nExtracted topics (fallback):")
-            for i, topic in enumerate(topics, 1):
-                print(f"{i}. {topic}")
-            return topics, skill_details
-    '''
   
     def get_skill_topic_parameters(self, skills_data):
         """
@@ -465,7 +398,7 @@ class GlobalContext:
         try:
             # Call LLM API
             print("\nCalling LLM API...")
-            ai_response_content = call_llm_api("openai", system_prompt, user_prompt)
+            ai_response_content = call_llm_api("anthropic", system_prompt, user_prompt)
             
             if not ai_response_content:
                 print("Error: No response from LLM API")
@@ -596,11 +529,11 @@ class GlobalContext:
             with open(sample_questions_file, 'r') as f:
                 sample_questions = json.load(f)
             
-            if sample_questions and 'questions' in sample_questions:
+            if sample_questions and isinstance(sample_questions, list):
                 # Format sample questions as a string
                 sample_questions_str = "\n".join([
                     f"Question {i+1}: {q.get('question', '')}"
-                    for i, q in enumerate(sample_questions['questions'])
+                    for i, q in enumerate(sample_questions)
                 ])
                 return f"\n### Sample Questions:\n{sample_questions_str}"
             return ""
@@ -638,6 +571,7 @@ def main():
         # Step 4: Load sample questions if provided
         sample_questions_section = ""
         sample_questions_file = getattr(context, 'sample_questions_file', None)
+        print(f"Sample questions file: {sample_questions_file}")
         if sample_questions_file:
             sample_questions_section = context._load_sample_questions(sample_questions_file)
         
@@ -652,7 +586,7 @@ def main():
         for params in llm_prompt_parameters_list:
             # Add sample questions section to parameters
             params['parameters']['sample_questions_section'] = sample_questions_section
-            
+            print(f"Sample questions section: {sample_questions_section}")
             # Get prompts
             system_prompt, user_prompt = context.get_prompts(params['parameters'])
             if system_prompt is None or user_prompt is None:

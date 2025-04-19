@@ -3,7 +3,7 @@ You are an experienced {subject} teacher who creates challenging and rigorous pr
 
 
 ### Task:
-- Generate **{num_questions} multiple-choice** questions that are "college level" and align closely with actual AP exam questions for the topic **'{skill}'**.
+- Generate exactly **{num_questions} multiple-choice** questions that are "college level" and align closely with actual AP exam questions for the topic **'{skill}'**.
 {sample_questions_section}
 - Generate questions that cover ALL learning objectives provided in the learning objectives list. Each learning objective  must be represented by at least one question.
 - For each question, assign one of the following Bloom's Taxonomy levels: **"Remembering"**, **"Understanding"**, **"Applying"**, **"Analyzing"**, **"Evaluating"**. Also include the corresponding Bloom's Taxonomy level number (1-5).

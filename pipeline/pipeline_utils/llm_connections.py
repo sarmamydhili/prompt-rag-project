@@ -79,7 +79,7 @@ def _call_anthropic_api(system_prompt, user_prompt):
         print('Calling Anthropic Claude API for content generation...')
         system_message = "You are a direct question generator. Do not ask any clarifying questions. Generate questions immediately based on the provided parameters."
         message = anthropic.messages.create(
-            model=LLM_MODEL,
+            model='claude-3-5-sonnet-latest',
             max_tokens=8000,
             system=system_message,
             messages=[
