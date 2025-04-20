@@ -20,11 +20,9 @@ from tqdm import tqdm
 
 # Local imports
 import config
-from pipeline.pipeline_utils.llm_connections import call_llm_api
-from pipeline.generation_pipeline.build_prompt import PromptBuilder
-from pipeline.generation_pipeline.retrieve_similar import QuestionRetriever
 from pipeline.pipeline_utils.db_connections import get_mysql_connection, get_mongo_connection, get_chroma_connection, DBConfig, save_to_mongodb, save_to_chroma
-from pipeline.pipeline_utils.embed_questions import embed_question
+from pipeline.generation_pipeline.build_prompt import PromptBuilder
+from pipeline.pipeline_utils.llm_connections import LLMConnections
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -39,7 +37,6 @@ class GlobalContext:
         self.chroma_client = None
         self.chroma_collection = None
         self.prompt_builder = None
-        self.question_retriever = None
 
         # Collection names
         self.mongo_collection_name = DBConfig.MONGO_QUESTIONS_COLLECTION
@@ -97,7 +94,6 @@ class GlobalContext:
         
         # Initialize services
         self.prompt_builder = PromptBuilder()
-        self.question_retriever = QuestionRetriever()
 
         # Validate required properties
         if not hasattr(self, 'task_name') and not hasattr(self, 'skill_ids'):
@@ -386,7 +382,7 @@ class GlobalContext:
             print(f"Error in get_prompts: {str(e)}")
             return None, None
 
-    def generate_content_from_llm(self, system_prompt, user_prompt):
+    def generate_content_from_llm(self, system_prompt, user_prompt, llm_connections):
         """
         Generate content using LLM with the given prompts
         Args:
@@ -396,9 +392,13 @@ class GlobalContext:
             str: Generated content or None if generation fails
         """
         try:
-            # Call LLM API
-            print("\nCalling LLM API...")
-            ai_response_content = call_llm_api("openai", system_prompt, user_prompt)
+            # Retrieve LLM configuration from context
+            llm_model = getattr(self, 'llm_model', 'openai')
+            temperature = getattr(self, 'temperature', 0.2)
+
+            # Call LLM API with configuration
+            print("\nCalling LLM API with model: ", llm_model)
+            ai_response_content = llm_connections.call_llm_api(provider=llm_model, system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature)
             
             if not ai_response_content:
                 print("Error: No response from LLM API")
@@ -428,7 +428,7 @@ class GlobalContext:
                 if not isinstance(parsed_json['questions'], list):
                     print("Error: 'questions' is not a list")
                     return None
-                
+                #print(f"******ai_response_content: {ai_response_content}")
                 return ai_response_content
 
             except json.JSONDecodeError as e:
@@ -492,7 +492,7 @@ class GlobalContext:
                     except json.JSONDecodeError as e:
                         print(f"Error parsing content: {e}")
                         continue
-                
+                print(f"******All questions: {all_questions}")
                 # Write all questions to file as an array
                 with open(output_path, 'w', encoding='utf-8') as f:
                     json.dump(all_questions, f, indent=2, ensure_ascii=False)
@@ -543,7 +543,7 @@ class GlobalContext:
 
 # ------------------ Main Workflow ------------------
 
-def generate_content_with_llm(context, skill_topic_params, sample_questions_section):
+def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections):
     """
     Prepares LLM parameters and generates content using the LLM.
     """
@@ -564,7 +564,7 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
             continue
         print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
         # Generate content
-        content = context.generate_content_from_llm(system_prompt, user_prompt)
+        content = context.generate_content_from_llm(system_prompt, user_prompt, llm_connections)
         if content:
             all_contents.append(content)
     return all_contents
@@ -601,11 +601,25 @@ def main():
         if sample_questions_file:
             sample_questions_section = context._load_sample_questions(sample_questions_file)
         
-        # Step 5: Generate content
+        # Step 5: Extract LLM model parameters
+        llm_model_params = {
+            "llm_model": getattr(context, 'llm_model', None),
+            "openai_llm_model": getattr(context, 'openai_llm_model', None),
+            "gemini_llm_model": getattr(context, 'gemini_llm_model', None),
+            "deepseek_llm_model": getattr(context, 'deepseek_llm_model', None),
+            "anthropic_llm_model": getattr(context, 'anthropic_llm_model', None),
+            "grok_llm_model": getattr(context, 'grok_llm_model', None),
+            "temperature": getattr(context, 'temperature', 0.9)
+        }
+
+        # Step 6: Initialize LLMConnections with the LLM model parameters
+        llm_connections = LLMConnections(config=llm_model_params)
+
+        # Step 7: Generate content
         print("Generating content...")
-        all_contents = generate_content_with_llm(context, skill_topic_params, sample_questions_section)
+        all_contents = generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections)
         
-        # Step 6: Write content
+        # Step 8: Write content
         print("Writing content...")
         context.write_content(all_contents)
         

@@ -13,6 +13,8 @@ You are an experienced {subject} teacher who creates challenging and rigorous pr
 - If a diagram is needed, set the `requires_diagram` flag to `true`; otherwise, set it to `false`.
 - **IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
 - **Output only valid JSON** with no additional text or commentary.
+- 9. Make sure the response follows proper escape invalid sequences
+
 
 ### Question Structure:
 Each question must include:
@@ -53,6 +55,9 @@ Each question must include:
    - Explain the reasoning process
    - Connect concepts to the correct answer
    - Address why other options are incorrect
+6. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code. Example of correctly escaped LaTeX
+7. DON'T ASK any
+
 
 ### Expected JSON Output:
 Return a JSON object with the following structure:
@@ -166,8 +171,20 @@ Return a JSON object with the following structure:
 ```
 
 ### Mathematical Notation Requirements:
-- Use MathJax delimiters for all mathematical expressions:
-  - Inline: `\( ... \)`
-  - Block: `\[ ... \]`
-- Follow the LaTeX formatting guidelines provided in the user prompt
-- Ensure all mathematical expressions are properly formatted and rendered 
+### Required LaTeX Notation:
+Use the following LaTeX formatting inside **MathJax delimiters** for proper rendering.
+- **Exponents:** Use `x^{{2}}` (e.g., `\\( x^{{2}} \\)`). Complex: `x^{{2n + 1}}` (e.g., `\\( x^{{2n + 1}} \\)`). **Wrap expressions in MathJax delimiters:** Inline: `\\( v(t) = 3t^{{2}} - 12t + 9 \\)`, Block: `\\[ v(t) = 3t^{{2}} - 12t + 9 \\]`.
+- **Fractions:** Use `\\frac{{a}}{{b}}` (e.g., `\\( \\frac{{1}}{{2}} \\)`).
+- **Summation:** Use `\\sum_{{i=1}}^{{n}} x_i` (e.g., `\\( \\sum_{{i=1}}^{{n}} i \\)`).
+- **Products:** Use `\\prod_{{i=1}}^{{n}} x_i` (e.g., `\\( \\prod_{{i=1}}^{{n}} i \\)`).
+- **Square Roots:** Use `\\sqrt{{x}}` (e.g., `\\( \\sqrt{{4}} \\)`).
+- **Derivatives:** Use `\\frac{{d}}{{dx}} f(x)` (e.g., `\\( \\frac{{d}}{{dx}} x^{{2}} = 2x \\)`).
+- **Integrals:** Definite: `\\int_{{a}}^{{b}} f(x) \\,dx` (e.g., `\\( \\int_{{0}}^{{1}} x^{{2}} \\,dx \\)`). Indefinite: `\\int f(x) \\,dx` (e.g., `\\( \\int x^{{2}} \\,dx \\)`).
+- **Limits:** Use `\\lim_{{x \\to \\infty}} \\frac{{1}}{{x}}` (e.g., `\\( \\lim_{{x \\to \\infty}} \\frac{{1}}{{x}} \\)`).
+- **Greek Letters:** Use LaTeX symbols: `\\( \\alpha \\)`, `\\( \\beta \\)`, `\\( \\gamma \\)`, `\\( \\theta \\)`.
+- **Matrices:**  
+  ```latex
+  \[
+    \begin{{bmatrix}} a & b \\ c & d \end{{bmatrix}}
+  \]  
+ 

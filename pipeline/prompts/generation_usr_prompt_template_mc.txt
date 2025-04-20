@@ -37,6 +37,9 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
 6. If a diagram is required, set the `requires_diagram` flag to `true` and provide diagram instructions.
 7. **Output only valid JSON responses** exactly as described in the system prompt.
 8. **Mathematical Notation:** Use LaTeX inside MathJax delimiters for any mathematical expressions.
+9. Make sure the response  with proper escape invalid sequences
+10. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code. Example of correctly escaped LaTeX
+
 
 
 ### Required LaTeX Notation:

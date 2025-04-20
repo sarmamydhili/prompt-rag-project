@@ -17,23 +17,23 @@ class PromptBuilder:
             print(f"Error loading template {filename}: {e}")
             return None
 
-    def _load_sample_questions(self, sample_questions_file):
-        """Load and format sample questions from JSON file"""
-        try:
-            with open(sample_questions_file, 'r') as f:
-                sample_questions = json.load(f)
-            
-            if sample_questions and 'questions' in sample_questions:
-                # Format sample questions as a string
-                sample_questions_str = "\n".join([
-                    f"Question {i+1}: {q.get('question', '')}"
-                    for i, q in enumerate(sample_questions['questions'])
-                ])
-                return f"\n### Sample Questions:\n{sample_questions_str}"
-            return ""
-        except Exception as e:
-            print(f"Error loading sample questions from {sample_questions_file}: {e}")
-            return ""
+    #def _load_sample_questions(self, sample_questions_file):
+    #    """Load and format sample questions from JSON file"""
+    #    try:
+    #        with open(sample_questions_file, 'r') as f:
+    #            sample_questions = json.load(f)
+    #        
+    #        if sample_questions and 'questions' in sample_questions:
+    #            # Format sample questions as a string
+    #            sample_questions_str = "\n".join([
+    #                f"Question {i+1}: {q.get('question', '')}"
+    #                for i, q in enumerate(sample_questions['questions'])
+    #            ])
+    #            return f"\n### Sample Questions:\n{sample_questions_str}"
+    #        return ""
+    #    except Exception as e:
+    #        print(f"Error loading sample questions from {sample_questions_file}: {e}")
+    #        return ""
 
     def _format_learning_objectives(self, learning_objectives):
         """Format learning objectives into a string"""
