@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -382,6 +383,19 @@ class GlobalContext:
             print(f"Error in get_prompts: {str(e)}")
             return None, None
 
+    def fix_latex_escapes(self, text: str) -> str:
+        """
+        Escapes LaTeX-style backslashes properly for JSON parsing,
+        without touching already escaped ones.
+        """
+        #print(f"Text before fixing escapes: {text}")
+        # Fix all single-backslash LaTeX sequences (not like \n, \t, etc.)
+        safe = re.sub(r'(?<!\\)\\(?![\\ntr"\/])', r'\\\\', text)
+        # Specifically handle the \infty case
+        safe = re.sub(r'(?<!\\)\\infty', r'\\\\infty', safe)
+        print(f"Text after fixing escapes: {safe}")
+        return safe
+
     def generate_content_from_llm(self, system_prompt, user_prompt, llm_connections):
         """
         Generate content using LLM with the given prompts
@@ -399,20 +413,23 @@ class GlobalContext:
             # Call LLM API with configuration
             print("\nCalling LLM API with model: ", llm_model)
             ai_response_content = llm_connections.call_llm_api(provider=llm_model, system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature)
-            
+            #print(f"AI response content before parsing: {ai_response_content}")
             if not ai_response_content:
                 print("Error: No response from LLM API")
                 return None
 
             # Clean and validate the response
             try:
-                # Remove any markdown code block markers if present
-                if ai_response_content.startswith('```json'):
-                    ai_response_content = ai_response_content[7:]
-                if ai_response_content.endswith('```'):
-                    ai_response_content = ai_response_content[:-3]
-                ai_response_content = ai_response_content.strip()
+                # Fix LaTeX escapes before parsing
+                ai_response_content = self.fix_latex_escapes(ai_response_content)
 
+                # Remove any markdown code block markers if present
+                ai_response_content = ai_response_content.strip('`')
+                if ai_response_content.startswith('json'):
+                    ai_response_content = ai_response_content[4:].strip()
+                ai_response_content = ai_response_content.strip('`')
+
+                print(f"AI response content after cleaning: {ai_response_content}")
                 # Try to parse as JSON to validate
                 parsed_json = json.loads(ai_response_content)
                 
@@ -549,7 +566,7 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
     """
     print("Preparing LLM parameters...")
     llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, [])
-    print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
+    #print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
     
     print("Generating content...")
     all_contents = []
@@ -609,7 +626,7 @@ def main():
             "deepseek_llm_model": getattr(context, 'deepseek_llm_model', None),
             "anthropic_llm_model": getattr(context, 'anthropic_llm_model', None),
             "grok_llm_model": getattr(context, 'grok_llm_model', None),
-            "temperature": getattr(context, 'temperature', 0.9)
+            "temperature": getattr(context, 'temperature', 0.2)
         }
 
         # Step 6: Initialize LLMConnections with the LLM model parameters

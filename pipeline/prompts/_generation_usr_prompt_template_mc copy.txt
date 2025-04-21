@@ -28,6 +28,12 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
    - skill_name concatenating bloom level and topic as "<level>-<Topic>" 
    - Subject 
    - Subject Area
+   - Metadata including:
+     * word_count
+     * has_math_notation
+     * requires_diagram
+     * blooms_level
+     * difficulty
 6. If a diagram is required, set the `requires_diagram` flag to `true` and provide diagram instructions.
 7. **Output only valid JSON responses** exactly as described in the system prompt.
 8. **Mathematical Notation:** Use LaTeX inside MathJax delimiters for any mathematical expressions.

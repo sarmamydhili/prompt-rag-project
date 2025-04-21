@@ -96,12 +96,13 @@ class LLMConnections:
             print('Gemini API call successful.')
             ai_response_content = response.text
             print('AI response received.')
-            try:
-                json.loads(ai_response_content)
-                return ai_response_content
-            except json.JSONDecodeError:
-                print("Warning: Gemini response is not valid JSON. Returning as raw text.")
-                return ai_response_content
+            return ai_response_content
+            #try:
+            #    json.loads(ai_response_content)
+            #    return ai_response_content
+            #except json.JSONDecodeError:
+            #    print("Warning: Gemini response is not valid JSON. Returning as raw text.")
+            #    return ai_response_content
         except Exception as e:
             print(f"Error during Gemini API call or processing: {e}")
             return None
@@ -140,7 +141,7 @@ class LLMConnections:
         try:
             print('Calling Anthropic Claude API for content generation...')
             anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-            system_message = "You are a direct question generator. Do not ask any clarifying questions. Generate questions immediately based on the provided parameters."
+            system_message = "You are a direct question generator. Do not ask any clarifying questions. Generate questions immediately based on the provided parameters. Return a JSON document with the following structure:"
             message = anthropic_client.messages.create(
                 model=model,
                 max_tokens=8000,

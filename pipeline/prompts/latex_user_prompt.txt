@@ -1,4 +1,0 @@
-generate the LaTeX code to fraw  the diagram for the following geometry problem.
-In triangle ABC, point D lies on side AC such that ∠BAD = ∠CAD. Point E lies on side BC such that ∠ABE = ∠CBE. If AB = 12, BC = 18, and AC = 20, find the length of DE
-
-Only generate the latex code to generate diagram.  Don't generate any comments such as ```latex.

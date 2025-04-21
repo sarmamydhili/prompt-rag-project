@@ -29,6 +29,19 @@ Each question must include:
 - **Mathematical Notation:** Use LaTeX formatting within MathJax delimiters wherever needed for both Questions and Answer Choices.
 - **Hints:** Provide 3 levels of hints, from subtle to more explicit.
 - **Solution:** Provide a detailed step-by-step solution with explanations.
+- **Metadata:**
+  - `word_count`: Approximate number of words in the question
+  - `has_math_notation`: Boolean indicating if mathematical notation is used
+  - `requires_diagram`: Boolean indicating if a diagram is required
+  - `blooms_level`: One of "Remembering", "Understanding", "Applying", "Analyzing", "Evaluating", or "Creating"
+  - `difficulty`: One of "easy", "medium", or "hard"
+  - `learning_objectives`: Array of specific learning objectives, concepts/theorems used in the question (e.g., ["Squeeze Theorem", "Limit Laws"])
+  - `prerequisites`: Array of prerequisite concepts needed to solve the question
+  - `time_to_solve`: Estimated time in minutes to solve the question
+  - `cognitive_demand`: Description of cognitive processes required (e.g., "Multi-step reasoning", "Conceptual understanding")
+  - `common_misconceptions`: Array of common misconceptions this question addresses
+  - `real_world_context`: Boolean indicating if the question has real-world context
+  - `mathematical_tools`: Array of mathematical tools/concepts used (e.g., ["Derivatives", "Integration", "Trigonometry"])
 
 ### Solution Requirements:
 1. The final step of the solution MUST match the correct answer choice exactly.
@@ -48,7 +61,7 @@ Each question must include:
 
 ### Expected JSON Output:
 Return a JSON object with the following structure:
-
+```json
 {{
   "questions": [
     {{
@@ -78,27 +91,32 @@ Return a JSON object with the following structure:
         {{
           "level": 2,
           "hint": "More explicit hint with some mathematical guidance...",
-          "requires_math": true
+          "requires_math": true,
+          "math_notation": "\( ... \)"
         }},
         {{
           "level": 3,
           "hint": "Detailed hint almost revealing the solution...",
-          "requires_math": true
+          "requires_math": true,
+          "math_notation": "\( ... \)"
         }}
       ],
       "solution": {{
         "steps": [
           {{
             "step_number": 1,
-            "explanation": "First step explanation..."
+            "explanation": "First step explanation...",
+            "math_notation": "\( ... \)"
           }},
           {{
             "step_number": 2,
-            "explanation": "Second step explanation..."
+            "explanation": "Second step explanation...",
+            "math_notation": "\( ... \)"
           }},
           {{
             "step_number": 3,
             "explanation": "Final step and conclusion...",
+            "math_notation": "\( ... \)",
             "verification": "This matches option A exactly: 'Option A text'"
           }}
         ],
@@ -108,7 +126,8 @@ Return a JSON object with the following structure:
             "steps": [
               {{
                 "step_number": 1,
-                "explanation": "Alternative first step..."
+                "explanation": "Alternative first step...",
+                "math_notation": "\( ... \)"
               }}
             ],
             "verification": "This also leads to option A: 'Option A text'"
@@ -128,10 +147,28 @@ Return a JSON object with the following structure:
             "explanation": "Why option D is incorrect..."
           }}
         ]
+      }},
+      "metadata": {{
+        "word_count": 150,
+        "has_math_notation": true,
+        "requires_diagram": false,
+        "blooms_level": "Remembering",
+        "difficulty": "hard",
+        "learning_objectives": ["Squeeze Theorem", "Limit Laws"],
+        "prerequisites": ["Basic limit concepts", "Inequality properties"],
+        "time_to_solve": 5,
+        "cognitive_demand": "Multi-step reasoning and conceptual understanding",
+        "common_misconceptions": [
+          "Assuming limits can be evaluated by direct substitution",
+          "Confusing Squeeze Theorem with other limit theorems"
+        ],
+        "real_world_context": false,
+        "mathematical_tools": ["Limits", "Inequalities", "Trigonometric functions"]
       }}
     }}
   ]
 }}
+```
 
 ### Mathematical Notation Requirements:
 ### Required LaTeX Notation:
