@@ -1,0 +1,70 @@
+{
+  "questions": [
+    {
+      "question": "Given the function \\(f(x) = \\begin{cases} x^2 & x < 2 \\\\ ax + b & x \\geq 2 \\end{cases}\\), where the function is differentiable at x = 2, find the values of a and b.",
+      "multiple_choices": [
+        "A. a = 4, b = -4",
+        "B. a = 4, b = 4",
+        "C. a = -4, b = 12",
+        "D. a = 2, b = 0"
+      ],
+      "correct_answer": "A",
+      "level": "Analyzing",
+      "level_num": 4,
+      "topic": "Differentiation: Definition and Fundamental Properties",
+      "skill_name": "Analyzing-Differentiation",
+      "subject": "AP Calculus AB",
+      "subject_area": "Calculus",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "requires_diagram": false,
+      "hints": [
+        {
+          "level": 1,
+          "hint": "For a function to be differentiable at x = 2, what two conditions must be met?",
+          "requires_math": false
+        },
+        {
+          "level": 2,
+          "hint": "Both the function value and derivative must be equal at x = 2 for both pieces of the function.",
+          "requires_math": true
+        },
+        {
+          "level": 3,
+          "hint": "Set up two equations: \\(4 = a(2) + b\\) and \\(4 = a\\)",
+          "requires_math": true
+        }
+      ],
+      "solution": {
+        "steps": [
+          {
+            "step_number": 1,
+            "explanation": "For f(x) to be differentiable at x = 2, both pieces must be equal at x = 2: \\(2^2 = a(2) + b\\)"
+          },
+          {
+            "step_number": 2,
+            "explanation": "The derivatives must also be equal at x = 2: \\(\\frac{d}{dx}(x^2)|_{x=2} = \\frac{d}{dx}(ax + b)|_{x=2}\\) gives us \\(2(2) = a\\)"
+          },
+          {
+            "step_number": 3,
+            "explanation": "From step 2: \\(4 = a\\). Substituting into step 1: \\(4 = 8 + b\\), so \\(b = -4\\)"
+          }
+        ],
+        "explanation_of_incorrect_options": [
+          {
+            "option": "B",
+            "explanation": "This would make the function continuous but not differentiable at x = 2"
+          },
+          {
+            "option": "C",
+            "explanation": "This gives incorrect derivative value at x = 2"
+          },
+          {
+            "option": "D",
+            "explanation": "This fails both continuity and differentiability conditions"
+          }
+        ]
+      }
+    }
+  ]
+}

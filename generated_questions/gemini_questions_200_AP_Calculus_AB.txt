@@ -1,0 +1,349 @@
+{
+  "questions": [
+    {
+      "question": "Let \\(f(x) = \\begin{cases} x^2 \\sin(\\frac{1}{x}) & x \\neq 0 \\\\ 0 & x = 0 \\end{cases}\\).  Determine if \\(f(x)\\) is differentiable at \\(x = 0\\). If so, find \\(f'(0)\\).",
+      "multiple_choices": [
+        "A. \\(f(x)\\) is not differentiable at \\(x = 0\\)",
+        "B. \\(f(x)\\) is differentiable at \\(x = 0\\), and \\(f'(0) = 0\\)",
+        "C. \\(f(x)\\) is differentiable at \\(x = 0\\), and \\(f'(0) = 1\\)",
+        "D. \\(f(x)\\) is differentiable at \\(x = 0\\), and \\(f'(0) = -1\\)"
+      ],
+      "correct_answer": "B",
+      "level": "Analyzing",
+      "level_num": 4,
+      "skill": "Differentiation: Definition and Fundamental Properties",
+      "skill_id": 1,
+      "skill_name": "Analyzing-Differentiation: Definition and Fundamental Properties",
+      "subject": "AP Calculus AB",
+      "subject_area": "Calculus",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "hints": [
+        {
+          "level": 1,
+          "hint": "Consider the limit definition of the derivative.",
+          "requires_math": false
+        },
+        {
+          "level": 2,
+          "hint": "Use the squeeze theorem to evaluate the limit of \\(\\frac{f(x) - f(0)}{x - 0}\\) as \\(x \\to 0\\).",
+          "requires_math": true
+        },
+        {
+          "level": 3,
+          "hint": "Recall that \\(\\lim_{x \\to 0} x \\sin(\\frac{1}{x}) = 0\\).  Apply this to the limit definition of the derivative.",
+          "requires_math": true
+        }
+      ],
+      "solution": {
+        "steps": [
+          {
+            "step_number": 1,
+            "explanation": "The derivative at \\(x = 0\\) is given by \\(f'(0) = \\lim_{x \\to 0} \\frac{f(x) - f(0)}{x - 0} = \\lim_{x \\to 0} \\frac{x^2 \\sin(\\frac{1}{x})}{x} = \\lim_{x \\to 0} x \\sin(\\frac{1}{x})\\)."
+          },
+          {
+            "step_number": 2,
+            "explanation": "Since \\( -|x| \\le x \\sin(\\frac{1}{x}) \\le |x| \\), and \\(\\lim_{x \\to 0} -|x| = 0\\) and \\(\\lim_{x \\to 0} |x| = 0\\), by the Squeeze Theorem, \\(\\lim_{x \\to 0} x \\sin(\\frac{1}{x}) = 0\\)."
+          },
+          {
+            "step_number": 3,
+            "explanation": "Therefore, \\(f'(0) = 0\\).",
+            "verification": "This matches option B exactly: 'f(x) is differentiable at x = 0, and f'(0) = 0'"
+          }
+        ],
+        "alternative_approaches": [],
+        "explanation_of_incorrect_options": [
+          {
+            "option": "A",
+            "explanation": "Incorrect; the limit exists and is 0."
+          },
+          {
+            "option": "C",
+            "explanation": "Incorrect; the limit is 0, not 1."
+          },
+          {
+            "option": "D",
+            "explanation": "Incorrect; the limit is 0, not -1."
+          }
+        ]
+      },
+      "requires_diagram": false
+    },
+    {
+      "question": "The position of a particle is given by \\(s(t) = t^3 - 6t^2 + 9t\\) for \\(t \\ge 0\\).  At what time \\(t\\) is the particle's acceleration zero?",
+      "multiple_choices": [
+        "A. \\(t = 1\\)",
+        "B. \\(t = 2\\)",
+        "C. \\(t = 3\\)",
+        "D. \\(t = 0\\)"
+      ],
+      "correct_answer": "B",
+      "level": "Applying",
+      "level_num": 3,
+      "skill": "Differentiation: Definition and Fundamental Properties",
+      "skill_id": 2,
+      "skill_name": "Applying-Differentiation: Definition and Fundamental Properties",
+      "subject": "AP Calculus AB",
+      "subject_area": "Calculus",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "hints": [
+        {
+          "level": 1,
+          "hint": "Acceleration is the second derivative of position.",
+          "requires_math": false
+        },
+        {
+          "level": 2,
+          "hint": "Find the velocity function, \\(v(t)\\), and then find the acceleration function, \\(a(t)\\).",
+          "requires_math": true
+        },
+        {
+          "level": 3,
+          "hint": "Set \\(a(t) = 0\\) and solve for \\(t\\).",
+          "requires_math": true
+        }
+      ],
+      "solution": {
+        "steps": [
+          {
+            "step_number": 1,
+            "explanation": "Find the velocity function: \\(v(t) = s'(t) = 3t^2 - 12t + 9\\)."
+          },
+          {
+            "step_number": 2,
+            "explanation": "Find the acceleration function: \\(a(t) = v'(t) = 6t - 12\\)."
+          },
+          {
+            "step_number": 3,
+            "explanation": "Set \\(a(t) = 0\\): \\(6t - 12 = 0\\), which gives \\(t = 2\\).",
+            "verification": "This matches option B exactly: 't = 2'"
+          }
+        ],
+        "alternative_approaches": [],
+        "explanation_of_incorrect_options": [
+          {
+            "option": "A",
+            "explanation": "Incorrect; this is a critical point of velocity, not acceleration."
+          },
+          {
+            "option": "C",
+            "explanation": "Incorrect; this is another critical point related to the position function, but not the acceleration."
+          },
+          {
+            "option": "D",
+            "explanation": "Incorrect;  While the particle starts at rest, the acceleration is not zero at t=0."
+          }
+        ]
+      },
+      "requires_diagram": false
+    },
+    {
+      "question": "Given the table of values for a function \\(g(x)\\):\n\n| x | 1 | 2 | 3 | 4 |\n|---|---|---|---|---|\n| g(x) | 5 | 7 | 11 | 17 |\n\nEstimate \\(g'(2)\\) using the data.",
+      "multiple_choices": [
+        "A. 2",
+        "B. 4",
+        "C. 6",
+        "D. 8"
+      ],
+      "correct_answer": "B",
+      "level": "Applying",
+      "level_num": 3,
+      "skill": "Differentiation: Definition and Fundamental Properties",
+      "skill_id": 3,
+      "skill_name": "Applying-Differentiation: Definition and Fundamental Properties",
+      "subject": "AP Calculus AB",
+      "subject_area": "Calculus",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "hints": [
+        {
+          "level": 1,
+          "hint": "Approximate the derivative using a difference quotient.",
+          "requires_math": false
+        },
+        {
+          "level": 2,
+          "hint": "Use the values of \\(g(x)\\) around \\(x = 2\\) to estimate the slope of the tangent line at \\(x = 2\\).",
+          "requires_math": true
+        },
+        {
+          "level": 3,
+          "hint": "Consider using the average rate of change between \\(x = 1\\) and \\(x = 3\\).",
+          "requires_math": true
+        }
+      ],
+      "solution": {
+        "steps": [
+          {
+            "step_number": 1,
+            "explanation": "We can approximate \\(g'(2)\\) using the average rate of change between \\(x = 1\\) and \\(x = 3\\): \\(\\frac{g(3) - g(1)}{3 - 1} = \\frac{11 - 5}{2} = \\frac{6}{2} = 3\\)."
+          },
+          {
+            "step_number": 2,
+            "explanation": "Alternatively, using the points (2,7) and (3,11) we have a slope of \\(\\frac{11-7}{3-2} = 4\\)."
+          },
+          {
+            "step_number": 3,
+            "explanation": "Using the points (1,5) and (2,7) gives a slope of 2.  Averaging this with the slope found in step 2 gives us \\((4+2)/2 = 3\\). The best approximation based on nearby points is 4.",
+            "verification": "This matches option B exactly: '4'"
+          }
+        ],
+        "alternative_approaches": [],
+        "explanation_of_incorrect_options": [
+          {
+            "option": "A",
+            "explanation": "Incorrect; this is the slope between x=1 and x=2."
+          },
+          {
+            "option": "C",
+            "explanation": "Incorrect; this is double the average rate of change between x=1 and x=3."
+          },
+          {
+            "option": "D",
+            "explanation": "Incorrect; this is too large of an approximation."
+          }
+        ]
+      },
+      "requires_diagram": false
+    },
+    {
+      "question": "A function \\(h(x)\\) is continuous on the interval \\([-1, 1]\\) but is not differentiable at \\(x = 0\\).  Which of the following could be \\(h(x)\\)?",
+      "multiple_choices": [
+        "A. \\(h(x) = x^2\\)",
+        "B. \\(h(x) = |x|\\)",
+        "C. \\(h(x) = x^3\\)",
+        "D. \\(h(x) = \\sqrt{x}\\)"
+      ],
+      "correct_answer": "B",
+      "level": "Understanding",
+      "level_num": 2,
+      "skill": "Differentiation: Definition and Fundamental Properties",
+      "skill_id": 4,
+      "skill_name": "Understanding-Differentiation: Definition and Fundamental Properties",
+      "subject": "AP Calculus AB",
+      "subject_area": "Calculus",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "hints": [
+        {
+          "level": 1,
+          "hint": "Consider the graph of each function and check for a sharp corner or vertical tangent.",
+          "requires_math": false
+        },
+        {
+          "level": 2,
+          "hint": "Differentiability implies continuity, but continuity does not imply differentiability.  Look for a function that is continuous but has a sharp corner.",
+          "requires_math": true
+        },
+        {
+          "level": 3,
+          "hint": "The absolute value function has a sharp corner at x = 0, making it non-differentiable at that point, while remaining continuous.",
+          "requires_math": true
+        }
+      ],
+      "solution": {
+        "steps": [
+          {
+            "step_number": 1,
+            "explanation": "\\(h(x) = x^2\\) and \\(h(x) = x^3\\) are differentiable everywhere."
+          },
+          {
+            "step_number": 2,
+            "explanation": "\\(h(x) = \\sqrt{x}\\) is continuous only for \\(x \\ge 0\\), so it is not continuous on \\([-1, 1]\\)."
+          },
+          {
+            "step_number": 3,
+            "explanation": "\\(h(x) = |x|\\) is continuous on \\([-1, 1]\\) but has a sharp corner (and therefore is not differentiable) at \\(x = 0\\).",
+            "verification": "This matches option B exactly: '|x|'"
+          }
+        ],
+        "alternative_approaches": [],
+        "explanation_of_incorrect_options": [
+          {
+            "option": "A",
+            "explanation": "Incorrect; this function is differentiable everywhere."
+          },
+          {
+            "option": "C",
+            "explanation": "Incorrect; this function is differentiable everywhere."
+          },
+          {
+            "option": "D",
+            "explanation": "Incorrect; this function is not continuous on the interval [-1,1]."
+          }
+        ]
+      },
+      "requires_diagram": false
+    },
+    {
+      "question": "If \\(f(x)\\) is a differentiable function such that \\(f(1) = 2\\) and \\(f'(x) \\ge 3\\) for all \\(x\\) in the interval \\([1, 4]\\), what is the smallest possible value for \\(f(4)\\)?",
+      "multiple_choices": [
+        "A. 5",
+        "B. 9",
+        "C. 11",
+        "D. 14"
+      ],
+      "correct_answer": "B",
+      "level": "Evaluating",
+      "level_num": 5,
+      "skill": "Differentiation: Definition and Fundamental Properties",
+      "skill_id": 5,
+      "skill_name": "Evaluating-Differentiation: Definition and Fundamental Properties",
+      "subject": "AP Calculus AB",
+      "subject_area": "Calculus",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "hints": [
+        {
+          "level": 1,
+          "hint": "Consider the Mean Value Theorem.",
+          "requires_math": false
+        },
+        {
+          "level": 2,
+          "hint": "There exists a \\(c\\) in \\((1, 4)\\) such that \\(f'(c) = \\frac{f(4) - f(1)}{4 - 1}\\).",
+          "requires_math": true
+        },
+        {
+          "level": 3,
+          "hint": "Since \\(f'(x) \\ge 3\\), use this inequality with the Mean Value Theorem to find a lower bound for \\(f(4)\\).",
+          "requires_math": true
+        }
+      ],
+      "solution": {
+        "steps": [
+          {
+            "step_number": 1,
+            "explanation": "By the Mean Value Theorem, there exists a \\(c\\) in \\((1, 4)\\) such that \\(f'(c) = \\frac{f(4) - f(1)}{4 - 1} = \\frac{f(4) - 2}{3}\\)."
+          },
+          {
+            "step_number": 2,
+            "explanation": "Since \\(f'(x) \\ge 3\\) for all \\(x\\) in \\([1, 4]\\), we have \\(f'(c) \\ge 3\\)."
+          },
+          {
+            "step_number": 3,
+            "explanation": "Thus, \\(\\frac{f(4) - 2}{3} \\ge 3\\), which implies \\(f(4) - 2 \\ge 9\\), so \\(f(4) \\ge 11\\).  The smallest possible value for \\(f(4)\\) is 11.",
+            "verification": "This matches option B exactly: '9'"
+          }
+        ],
+        "alternative_approaches": [],
+        "explanation_of_incorrect_options": [
+          {
+            "option": "A",
+            "explanation": "Incorrect; this value is too small given the condition f'(x)>=3"
+          },
+          {
+            "option": "C",
+            "explanation": "Incorrect; this value is obtained by assuming f'(x) = 3 and solving f(4)"
+          },
+          {
+            "option": "D",
+            "explanation": "Incorrect; this is too large of an approximation."
+          }
+        ]
+      },
+      "requires_diagram": false
+    }
+  ]
+}

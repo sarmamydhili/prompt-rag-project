@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import configparser
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,11 +48,11 @@ class GlobalContext:
         self._load_app_config()
 
     def _load_app_config(self):
-        """Load application configurations from task_config.json"""
+        """Load application configurations from task_config.properties"""
         try:
             # Get the pipeline directory
             pipeline_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            config_path = os.path.join(pipeline_dir, 'task_config.json')
+            config_path = os.path.join(pipeline_dir, 'task_config.properties')
             print(f"Looking for config file at: {config_path}")
             print(f"Pipeline directory: {pipeline_dir}")
             
@@ -60,25 +61,30 @@ class GlobalContext:
                 print(f"Error: Config file not found at {config_path}")
                 raise FileNotFoundError(f"Config file not found at {config_path}")
             
-            with open(config_path, 'r') as f:
-                config_data = json.load(f)
-                #print("\nRaw config data:")
-                print(json.dumps(config_data, indent=2))
-                
-                # Load all configurations directly
-                for key, value in config_data.items():
-                    #print(f"\nSetting {key} to: {value}")
+            # Load properties file with extended interpolation
+            config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+            config.read(config_path)
+
+            # Load all configurations directly
+            for section in config.sections():
+                for key, value in config.items(section):
                     setattr(self, key, value)
-                
-                # Verify the properties were set
-                #print("\nVerifying context properties:")
-                required_props = ['task_name', 'skill_ids', 'num_questions', 'prompt_type', 'output_mode']
-                for prop in required_props:
-                    if hasattr(self, prop):
-                        print(f"✓ {prop}: {getattr(self, prop)}")
-                    else:
-                        print(f"✗ {prop} not found in context")
-                
+
+            # Verify the properties were set
+            required_props = ['task_name', 'skill_ids', 'num_questions', 'prompt_type', 'output_mode']
+            for prop in required_props:
+                if hasattr(self, prop):
+                    print(f"✓ {prop}: {getattr(self, prop)}")
+                else:
+                    print(f"✗ {prop} not found in context")
+
+            # Convert skill_ids from string to list of integers
+            skill_ids_str = getattr(self, 'skill_ids', '')
+            self.skill_ids = [int(sid.strip()) for sid in skill_ids_str.split(',') if sid.strip().isdigit()]
+
+            # Convert temperature from string to float
+            self.temperature = float(getattr(self, 'temperature', '0.2'))
+
         except FileNotFoundError as e:
             print(f"Warning: {str(e)}")
             raise
@@ -99,6 +105,17 @@ class GlobalContext:
         # Validate required properties
         if not hasattr(self, 'task_name') and not hasattr(self, 'skill_ids'):
             raise ValueError("Either task_name or skill_ids must be provided in task_config.json")
+
+        # Extract LLM model parameters
+        self.llm_model_params = {
+            "llm_model": getattr(self, 'llm_model', None),
+            "openai_llm_model": getattr(self, 'openai_llm_model', None),
+            "gemini_llm_model": getattr(self, 'gemini_llm_model', None),
+            "deepseek_llm_model": getattr(self, 'deepseek_llm_model', None),
+            "anthropic_llm_model": getattr(self, 'anthropic_llm_model', None),
+            "grok_llm_model": getattr(self, 'grok_llm_model', None),
+            "temperature": getattr(self, 'temperature', 0.2)
+        }
 
     def resolve_skills_from_context(self):
         """Resolve skills from the context based on skill_ids or task_name"""
@@ -459,7 +476,8 @@ class GlobalContext:
 
     def store_output_to_file(self, topic_name, skill_name, content):
         if content:
-            filename = f"questions_{skill_name}_{topic_name}.txt".replace(" ", "_").replace("/", "_")
+            llm_model = getattr(self, 'llm_model', 'default_model')
+            filename = f"{llm_model}_questions_{skill_name}_{topic_name}.txt".replace(" ", "_").replace("/", "_")
             os.makedirs("generated_questions", exist_ok=True)
             filepath = os.path.join("generated_questions", filename)
             with open(filepath, 'w') as f:
@@ -490,46 +508,24 @@ class GlobalContext:
         """Write generated content to a JSON file or MongoDB based on output_mode."""
         try:
             if self.output_mode == "file":
-                # Generate dynamic filename
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                subject = getattr(self, 'subject', 'general')
-                output_filename = f"questions_{subject}_{timestamp}.json"
-                output_path = os.path.join("generated_questions", output_filename)
-                
-                # Create directory if it doesn't exist
-                os.makedirs("generated_questions", exist_ok=True)
-                
-                # Parse each content string and combine all questions
-                all_questions = []
                 for content in contents:
-                    try:
-                        parsed_content = json.loads(content)
-                        if 'questions' in parsed_content:
-                            all_questions.extend(parsed_content['questions'])
-                    except json.JSONDecodeError as e:
-                        print(f"Error parsing content: {e}")
-                        continue
-                print(f"******All questions: {all_questions}")
-                # Write all questions to file as an array
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    json.dump(all_questions, f, indent=2, ensure_ascii=False)
-                
-                print(f"✅ Content written to {output_path}")
-            
+                    # Assuming topic_name and skill_name are available in the context
+                    topic_name = getattr(self, 'task_name', 'general')
+                    skill_name = getattr(self, 'skill_ids', ['unknown'])[0]  # Use the first skill_id as skill_name
+                    self.store_output_to_file(topic_name, skill_name, content)
+
             elif self.output_mode == "mongo":
                 for content in contents:
-                    try:
-                        parsed_content = json.loads(content)
-                        if 'questions' in parsed_content:
-                            for question in parsed_content['questions']:
-                                if 'skill_id' in question:
-                                    self.store_output_to_mongo(json.dumps([question]), question['skill_id'])
-                    except json.JSONDecodeError:
-                        print(f"Error parsing content for MongoDB storage")
-            
+                    # Assuming skill_id is available in the content
+                    parsed_content = json.loads(content)
+                    if 'questions' in parsed_content:
+                        for question in parsed_content['questions']:
+                            if 'skill_id' in question:
+                                self.store_output_to_mongo(json.dumps([question]), question['skill_id'])
+
             else:
                 raise ValueError(f"Invalid output_mode: {self.output_mode}")
-            
+
         except Exception as e:
             print(f"❌ Error writing content: {str(e)}")
             raise
@@ -558,7 +554,7 @@ class GlobalContext:
             print(f"Error loading sample questions from {sample_questions_file}: {e}")
             return ""
 
-# ------------------ Main Workflow ------------------
+
 
 def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections):
     """
@@ -585,63 +581,77 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
         if content:
             all_contents.append(content)
     return all_contents
+# ------------------ Main Workflow ------------------
+def initialize_context():
+    print("Initializing context...")
+    context = GlobalContext()  # Creates context and loads task_config.properties
+    context.initialize()       # Initializes connections and services
+    
+    # Validate context is properly loaded
+    if not hasattr(context, 'task_name') and not hasattr(context, 'skill_ids'):
+        raise ValueError("Either task_name or skill_ids must be provided in task_config.properties")
+    
+    print(f"Context loaded with task: {getattr(context, 'task_name', 'None')}")
+    print(f"Skill IDs: {getattr(context, 'skill_ids', [])}")
+    return context
+
+
+def resolve_skills(context):
+    print("Resolving skills...")
+    skills_data = context.resolve_skills_from_context()
+    print(f"Skills data: {skills_data}")
+    if not skills_data:
+        raise ValueError("No skills data found for the given context")
+    return skills_data
+
+
+def prepare_parameters(context, skills_data):
+    print("Preparing parameters...")
+    skill_topic_params = context.get_skill_topic_parameters(skills_data)
+    print(f"Skill topic parameters: {skill_topic_params}")
+    return skill_topic_params
+
+
+def load_sample_questions(context):
+    sample_questions_section = ""
+    sample_questions_file = getattr(context, 'sample_questions_file', None)
+    print(f"Sample questions file: {sample_questions_file}")
+    if sample_questions_file:
+        sample_questions_section = context._load_sample_questions(sample_questions_file)
+    return sample_questions_section
+
+
+def generate_content(context, skill_topic_params, sample_questions_section, llm_connections):
+    print("Generating content...")
+    return generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections)
+
 
 def main():
     try:
         # Step 1: Initialize Context
-        print("Initializing context...")
-        context = GlobalContext()  # Creates context and loads task_config.json
-        context.initialize()       # Initializes connections and services
-       
-        # Validate context is properly loaded
-        if not hasattr(context, 'task_name') and not hasattr(context, 'skill_ids'):
-            raise ValueError("Either task_name or skill_ids must be provided in task_config.json")
+        context = initialize_context()
         
-        print(f"Context loaded with task: {getattr(context, 'task_name', 'None')}")
-        print(f"Skill IDs: {getattr(context, 'skill_ids', [])}")
-       
-        # Step 2: Resolve skills
-        print("Resolving skills...")
-        skills_data = context.resolve_skills_from_context()
-        print(f"Skills data: {skills_data}")
-        if not skills_data:
-            raise ValueError("No skills data found for the given context")
-       
-        # Step 3: Prepare parameters
-        skill_topic_params = context.get_skill_topic_parameters(skills_data)
-        print(f"Skill topic parameters: {skill_topic_params}")
-        
-        # Step 4: Load sample questions if provided
-        sample_questions_section = ""
-        sample_questions_file = getattr(context, 'sample_questions_file', None)
-        print(f"Sample questions file: {sample_questions_file}")
-        if sample_questions_file:
-            sample_questions_section = context._load_sample_questions(sample_questions_file)
-        
-        # Step 5: Extract LLM model parameters
-        llm_model_params = {
-            "llm_model": getattr(context, 'llm_model', None),
-            "openai_llm_model": getattr(context, 'openai_llm_model', None),
-            "gemini_llm_model": getattr(context, 'gemini_llm_model', None),
-            "deepseek_llm_model": getattr(context, 'deepseek_llm_model', None),
-            "anthropic_llm_model": getattr(context, 'anthropic_llm_model', None),
-            "grok_llm_model": getattr(context, 'grok_llm_model', None),
-            "temperature": getattr(context, 'temperature', 0.2)
-        }
+        # Step 2: Initialize LLMConnections with the LLM model parameters
+        llm_connections = LLMConnections(config=context.llm_model_params)
 
-        # Step 6: Initialize LLMConnections with the LLM model parameters
-        llm_connections = LLMConnections(config=llm_model_params)
+        # Step 3: Resolve Skills
+        skills_data = resolve_skills(context)
 
-        # Step 7: Generate content
-        print("Generating content...")
-        all_contents = generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections)
-        
-        # Step 8: Write content
+        # Step 4: Prepare Parameters
+        skill_topic_params = prepare_parameters(context, skills_data)
+
+        # Step 5: Load Sample Questions
+        sample_questions_section = load_sample_questions(context)
+
+        # Step 6: Generate Content
+        all_contents = generate_content(context, skill_topic_params, sample_questions_section, llm_connections)
+
+        # Step 7: Write Content
         print("Writing content...")
         context.write_content(all_contents)
-        
+
         print("✅ Question Generation Completed.")
-      
+
     except Exception as e:
         print(f"❌ Error in main workflow: {str(e)}")
         raise
