@@ -2,15 +2,19 @@ import json
 import os
 
 class PromptBuilder:
-    def __init__(self):
+    def __init__(self, system_prompt_template_path, user_prompt_template_path):
         # Load prompt templates
-        self.system_prompt_template = self._load_template('generation_system_prompt_template_mc.txt')
-        self.user_prompt_template = self._load_template('generation_usr_prompt_template_mc.txt')
+        print(f"Loading prompt templates from {system_prompt_template_path} and {user_prompt_template_path}")   
+        self.system_prompt_template = self._load_template(system_prompt_template_path)
+        self.user_prompt_template = self._load_template(user_prompt_template_path)
 
     def _load_template(self, filename):
         """Load a prompt template from file"""
+        print(f"in _load_template Loading template from {filename}")
         try:
-            template_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', filename)
+            # Ensure filename does not include a path
+            filename = os.path.basename(filename)
+            template_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'prompts', filename)
             with open(template_path, 'r') as f:
                 return f.read().strip()
         except Exception as e:
@@ -72,12 +76,12 @@ class PromptBuilder:
                 **base_params,
                 'learning_objectives_str': learning_objectives_str
             }
-            print(f"Final params: {final_params}")
+            #print(f"Final params: {final_params}")
             # Step 4: Generate prompts
             system_prompt = self.system_prompt_template.format(**final_params)
-            print(f"System prompt: {system_prompt}")
+            #print(f"System prompt: {system_prompt}")
             user_prompt = self.user_prompt_template.format(**final_params)
-            print(f"User prompt: {user_prompt}")
+            #print(f"User prompt: {user_prompt}")
             return system_prompt, user_prompt
 
         except Exception as e:

@@ -85,6 +85,10 @@ class GlobalContext:
             # Convert temperature from string to float
             self.temperature = float(getattr(self, 'temperature', '0.2'))
 
+            # Load template paths from configuration
+            self.generation_system_prompt_path = getattr(self, 'generation_system_prompt_path', 'prompts/generation_system_prompt_template_mc.txt')
+            self.generation_user_prompt_path = getattr(self, 'generation_user_prompt_path', 'prompts/generation_user_prompt_template_mc.txt')
+
         except FileNotFoundError as e:
             print(f"Warning: {str(e)}")
             raise
@@ -100,7 +104,10 @@ class GlobalContext:
         self.chroma_client, self.chroma_collection = get_chroma_connection()
         
         # Initialize services
-        self.prompt_builder = PromptBuilder()
+        self.prompt_builder = PromptBuilder(
+            system_prompt_template_path=self.generation_system_prompt_path,
+            user_prompt_template_path=self.generation_user_prompt_path
+        )
 
         # Validate required properties
         if not hasattr(self, 'task_name') and not hasattr(self, 'skill_ids'):
@@ -477,7 +484,8 @@ class GlobalContext:
     def store_output_to_file(self, topic_name, skill_name, content):
         if content:
             llm_model = getattr(self, 'llm_model', 'default_model')
-            filename = f"{llm_model}_questions_{skill_name}_{topic_name}.txt".replace(" ", "_").replace("/", "_")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{llm_model}_questions_{skill_name}_{topic_name}_{timestamp}.txt".replace(" ", "_").replace("/", "_")
             os.makedirs("generated_questions", exist_ok=True)
             filepath = os.path.join("generated_questions", filename)
             with open(filepath, 'w') as f:
@@ -508,15 +516,19 @@ class GlobalContext:
         """Write generated content to a JSON file or MongoDB based on output_mode."""
         try:
             if self.output_mode == "file":
-                for content in contents:
-                    # Assuming topic_name and skill_name are available in the context
+                for index, content in enumerate(contents, 1):
                     topic_name = getattr(self, 'task_name', 'general')
-                    skill_name = getattr(self, 'skill_ids', ['unknown'])[0]  # Use the first skill_id as skill_name
-                    self.store_output_to_file(topic_name, skill_name, content)
+                    skill_name = getattr(self, 'skill_ids', ['unknown'])[0]
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"{self.llm_model}_questions_{skill_name}_{topic_name}_{timestamp}_batch{index}.txt".replace(" ", "_").replace("/", "_")
+                    os.makedirs("generated_questions", exist_ok=True)
+                    filepath = os.path.join("generated_questions", filename)
+                    with open(filepath, 'w') as f:
+                        f.write(content)
+                    print(f"✅ Content written to file: {filepath}")
 
             elif self.output_mode == "mongo":
                 for content in contents:
-                    # Assuming skill_id is available in the content
                     parsed_content = json.loads(content)
                     if 'questions' in parsed_content:
                         for question in parsed_content['questions']:
@@ -581,80 +593,215 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
         if content:
             all_contents.append(content)
     return all_contents
-# ------------------ Main Workflow ------------------
-def initialize_context():
-    print("Initializing context...")
-    context = GlobalContext()  # Creates context and loads task_config.properties
-    context.initialize()       # Initializes connections and services
-    
-    # Validate context is properly loaded
-    if not hasattr(context, 'task_name') and not hasattr(context, 'skill_ids'):
-        raise ValueError("Either task_name or skill_ids must be provided in task_config.properties")
-    
-    print(f"Context loaded with task: {getattr(context, 'task_name', 'None')}")
-    print(f"Skill IDs: {getattr(context, 'skill_ids', [])}")
-    return context
+
+class BaseWorkflow:
+    def __init__(self):
+        self.context = self.initialize_context()
+        self.llm_connections = LLMConnections(config=self.context.llm_model_params)
+
+    def initialize_context(self):
+        print("Initializing context...")
+        context = GlobalContext()  # Creates context and loads task_config.properties
+        context.initialize()       # Initializes connections and services
+        
+        # Validate context is properly loaded
+        if not hasattr(context, 'task_name') and not hasattr(context, 'skill_ids'):
+            raise ValueError("Either task_name or skill_ids must be provided in task_config.properties")
+        
+        print(f"Context loaded with task: {getattr(context, 'task_name', 'None')}")
+        print(f"Skill IDs: {getattr(context, 'skill_ids', [])}")
+        return context
+
+    def fix_latex_escapes(self, text: str) -> str:
+        """Escapes LaTeX-style backslashes properly for JSON parsing."""
+        safe = re.sub(r'(?<!\\)\\(?![\\ntr"\/])', r'\\\\', text)
+        safe = re.sub(r'(?<!\\)\\infty', r'\\\\infty', safe)
+        print(f"Text after fixing escapes: {safe}")
+        return safe
+
+    def get_prompts(self, parameters):
+        """Get system and user prompts from prompt builder"""
+        try:
+            system_prompt, user_prompt = self.context.prompt_builder.create_prompts(parameters)
+            if system_prompt is None or user_prompt is None:
+                print("Error: Could not create prompts.")
+                return None, None
+            return system_prompt, user_prompt
+        except Exception as e:
+            print(f"Error in get_prompts: {str(e)}")
+            return None, None
+
+    def generate_content_from_llm(self, system_prompt, user_prompt):
+        """Generate content using LLM with the given prompts"""
+        try:
+            llm_model = getattr(self.context, 'llm_model', 'openai')
+            temperature = getattr(self.context, 'temperature', 0.2)
+
+            print("\nCalling LLM API with model: ", llm_model)
+            ai_response_content = self.llm_connections.call_llm_api(
+                provider=llm_model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=temperature
+            )
+
+            if not ai_response_content:
+                print("Error: No response from LLM API")
+                return None
+
+            try:
+                ai_response_content = self.fix_latex_escapes(ai_response_content)
+                ai_response_content = ai_response_content.strip('`')
+                if ai_response_content.startswith('json'):
+                    ai_response_content = ai_response_content[4:].strip()
+                ai_response_content = ai_response_content.strip('`')
+
+                print(f"AI response content after cleaning: {ai_response_content}")
+                parsed_json = json.loads(ai_response_content)
+                
+                if not isinstance(parsed_json, dict):
+                    print("Error: Response is not a JSON object")
+                    return None
+                
+                if 'questions' not in parsed_json:
+                    print("Error: Response missing 'questions' key")
+                    return None
+                
+                if not isinstance(parsed_json['questions'], list):
+                    print("Error: 'questions' is not a list")
+                    return None
+
+                return ai_response_content
+
+            except json.JSONDecodeError as e:
+                print(f"Error: Invalid JSON response from LLM: {e}")
+                print("Raw response:", ai_response_content)
+                return None
+
+        except Exception as e:
+            print(f"Error in generate_content_from_prompts: {str(e)}")
+            return None
+
+    def write_content(self, contents):
+        """Write generated content to a JSON file or MongoDB based on output_mode."""
+        try:
+            if self.context.output_mode == "file":
+                for index, content in enumerate(contents, 1):
+                    topic_name = getattr(self.context, 'task_name', 'general')
+                    skill_name = getattr(self.context, 'skill_ids', ['unknown'])[0]
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"{self.context.llm_model}_questions_{skill_name}_{topic_name}_{timestamp}_batch{index}.txt".replace(" ", "_").replace("/", "_")
+                    os.makedirs("generated_questions", exist_ok=True)
+                    filepath = os.path.join("generated_questions", filename)
+                    with open(filepath, 'w') as f:
+                        f.write(content)
+                    print(f"✅ Content written to file: {filepath}")
+
+            elif self.context.output_mode == "mongo":
+                for content in contents:
+                    parsed_content = json.loads(content)
+                    if 'questions' in parsed_content:
+                        for question in parsed_content['questions']:
+                            if 'skill_id' in question:
+                                self.context.store_output_to_mongo(json.dumps([question]), question['skill_id'])
+
+            else:
+                raise ValueError(f"Invalid output_mode: {self.context.output_mode}")
+
+        except Exception as e:
+            print(f"❌ Error writing content: {str(e)}")
+            raise
 
 
-def resolve_skills(context):
-    print("Resolving skills...")
-    skills_data = context.resolve_skills_from_context()
-    print(f"Skills data: {skills_data}")
-    if not skills_data:
-        raise ValueError("No skills data found for the given context")
-    return skills_data
+class QuestionGenerationWorkflow(BaseWorkflow):
+    def resolve_skills(self):
+        print("Resolving skills...")
+        skills_data = self.context.resolve_skills_from_context()
+        print(f"Skills data: {skills_data}")
+        if not skills_data:
+            raise ValueError("No skills data found for the given context")
+        return skills_data
+
+    def prepare_parameters(self, skills_data):
+        print("Preparing parameters...")
+        skill_topic_params = self.context.get_skill_topic_parameters(skills_data)
+        print(f"Skill topic parameters: {skill_topic_params}")
+        return skill_topic_params
+
+    def load_sample_questions(self):
+        sample_questions_section = ""
+        sample_questions_file = getattr(self.context, 'sample_questions_file', None)
+        print(f"Sample questions file: {sample_questions_file}")
+        if sample_questions_file:
+            sample_questions_section = self.context._load_sample_questions(sample_questions_file)
+        return sample_questions_section
+
+    def run(self):
+        try:
+            # Step 3: Resolve Skills
+            skills_data = self.resolve_skills()
+
+            # Step 4: Prepare Parameters
+            skill_topic_params = self.prepare_parameters(skills_data)
+
+            # Step 5: Load Sample Questions
+            sample_questions_section = self.load_sample_questions()
+
+            # Step 6: Generate Content
+            all_contents = generate_content_with_llm(self.context, skill_topic_params, sample_questions_section, self.llm_connections)
+
+            # Step 7: Write Content
+            print("Writing content...")
+            self.write_content(all_contents)
+
+            print("✅ Question Generation Completed.")
+
+        except Exception as e:
+            print(f"❌ Error in main workflow: {str(e)}")
+            raise
 
 
-def prepare_parameters(context, skills_data):
-    print("Preparing parameters...")
-    skill_topic_params = context.get_skill_topic_parameters(skills_data)
-    print(f"Skill topic parameters: {skill_topic_params}")
-    return skill_topic_params
+class QuestionEnhanceWorkflow(BaseWorkflow):
+    def __init__(self):
+        super().__init__()
+        self.questions = self.get_questions_from_mongo()
 
+    def get_questions_from_mongo(self, subject=None):
+        """Read from MongoDB. Filter by subject if provided, return list of questions"""
+        mongo_client = get_mongo_connection(DBConfig.MONGO_DB_NAME)
+        questions = mongo_client.find_many(collection_name="questions", query={"subject": subject})
+        return questions
 
-def load_sample_questions(context):
-    sample_questions_section = ""
-    sample_questions_file = getattr(context, 'sample_questions_file', None)
-    print(f"Sample questions file: {sample_questions_file}")
-    if sample_questions_file:
-        sample_questions_section = context._load_sample_questions(sample_questions_file)
-    return sample_questions_section
+    def enhance_question(self, question):
+        """Enhance a single question"""
+        # TODO: Implement question enhancement logic
+        pass
 
+    def run(self):
+        try:
+            print("Starting Question Enhancement Workflow...")
+            
+            for question in self.questions:
+                enhanced_question = self.enhance_question(question)
+                # TODO: Save enhanced question back to MongoDB
+                
+            print("✅ Question Enhancement Completed.")
 
-def generate_content(context, skill_topic_params, sample_questions_section, llm_connections):
-    print("Generating content...")
-    return generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections)
+        except Exception as e:
+            print(f"❌ Error in enhancement workflow: {str(e)}")
+            raise
 
 
 def main():
-    try:
-        # Step 1: Initialize Context
-        context = initialize_context()
+    # Choose which workflow to run
+    workflow_type = "generate"  # or "generate"
+    
+    if workflow_type == "generate":
+        workflow = QuestionGenerationWorkflow()
+    else:
+        workflow = QuestionEnhanceWorkflow()
         
-        # Step 2: Initialize LLMConnections with the LLM model parameters
-        llm_connections = LLMConnections(config=context.llm_model_params)
-
-        # Step 3: Resolve Skills
-        skills_data = resolve_skills(context)
-
-        # Step 4: Prepare Parameters
-        skill_topic_params = prepare_parameters(context, skills_data)
-
-        # Step 5: Load Sample Questions
-        sample_questions_section = load_sample_questions(context)
-
-        # Step 6: Generate Content
-        all_contents = generate_content(context, skill_topic_params, sample_questions_section, llm_connections)
-
-        # Step 7: Write Content
-        print("Writing content...")
-        context.write_content(all_contents)
-
-        print("✅ Question Generation Completed.")
-
-    except Exception as e:
-        print(f"❌ Error in main workflow: {str(e)}")
-        raise
+    workflow.run()
 
 if __name__ == '__main__':
     main()
