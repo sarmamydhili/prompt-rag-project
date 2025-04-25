@@ -1,39 +1,35 @@
-Generate exactly **{num_questions} hard and challenging college-level multiple-choice questions** for {subject} using the following parameters:
+Validate the following multiple-choice question and its answer:
+
+Original Question:
+{question}
+
+Parameters:
 - **Subject**: {subject}
 - **Subject Area**: {subject_area}
-- **topic**: {skill}
-- **learning_objectives**: 
+- **Topic**: {skill}
+- **Learning Objectives**: 
 
-{learning_objectives}
 
-{sample_questions_section}
 
-**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+**IMPORTANT: Do not ask any clarifying questions. Validate and correct the answer directly based on the provided parameters.**
 
 **Instructions:**
-1. Ensure every question is highly challenging and directly related to the provided subject, topic, and skills.
-2. **CRITICAL: Generate questions that cover ALL learning objectives in the learning objectives above. Each skill must be represented by at least one question.**
-3. Questions must require Multi-Step Reasoning, Conceptual Depth, and Graphical or Experimental Analysis.
-4. Ensure:
-   - High mathematical rigor typical of AP college-level subjects.
-   - High graphical/experimental complexity.
-   - Equal focus on conceptual reasoning and quantitative problem-solving.
-   - Coverage of all major subtopics within {learning_objectives}.
-5. Each question must include:
-   - A question stem.
-   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting.
-   - The correct answer (only the label, e.g., "A").
-   - Bloom's Taxonomy level assignment ("Applying", "Analyzing", "Evaluating") and level number.
-   - topic 
-   - skill_name concatenating bloom level and topic as "<level>-<Topic>" 
-   - Subject 
-   - Subject Area
-6. If a diagram is required, set the `requires_diagram` flag to `true` and provide diagram instructions.
+1. Keep the question stem and multiple-choice options exactly as provided.
+2. Verify if the marked correct answer is indeed correct.
+3. If the current answer is incorrect, identify the correct answer and provide detailed justification.
+4. Ensure the answer aligns with the learning objectives provided.
+5. Keep the same Bloom's Taxonomy level and level number.
+6. Each question must include:
+   - The original question stem (unchanged)
+   - The original four multiple-choice options (unchanged)
+   - The validated correct answer (only the label, e.g., "A")
+   - The same Bloom's Taxonomy level and level number
+   - The same topic and skill_name
+   - The same Subject and Subject Area
 7. **Output only valid JSON responses** exactly as described in the system prompt.
 8. **Mathematical Notation:** Use LaTeX inside MathJax delimiters for any mathematical expressions.
-9. Make sure the response  with proper escape invalid sequences
-10. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code. Example of correctly escaped LaTeX
-
+9. Make sure the response follows proper escape invalid sequences
+10. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code.
 
 ### Required LaTeX Notation:
 Use the following LaTeX formatting inside **MathJax delimiters** for proper rendering.

@@ -85,9 +85,11 @@ class GlobalContext:
             # Convert temperature from string to float
             self.temperature = float(getattr(self, 'temperature', '0.2'))
 
-            # Load template paths from configuration
-            self.generation_system_prompt_path = getattr(self, 'generation_system_prompt_path', 'prompts/generation_system_prompt_template_mc.txt')
-            self.generation_user_prompt_path = getattr(self, 'generation_user_prompt_path', 'prompts/generation_user_prompt_template_mc.txt')
+            # Set prompt paths
+            self.generation_system_prompt_path = getattr(self, 'generation_system_prompt_path', 'pipeline/prompts/generation_system_prompt_template_mc.txt')
+            self.generation_user_prompt_path = getattr(self, 'generation_user_prompt_path', 'pipeline/prompts/generation_usr_prompt_template_mc.txt')
+            self.enhance_system_prompt_path = getattr(self, 'enhance_system_prompt_path', 'pipeline/prompts/enhance_system_prompt_template_mc.txt')
+            self.enhance_user_prompt_path = getattr(self, 'enhance_user_prompt_path', 'pipeline/prompts/enhance_usr_prompt_template_mc.txt')
 
         except FileNotFoundError as e:
             print(f"Warning: {str(e)}")
@@ -512,36 +514,6 @@ class GlobalContext:
                 print(f"JSON decoding failed: {e}")
                 print("Raw API response that caused the error:\n", content)
 
-    def write_content(self, contents):
-        """Write generated content to a JSON file or MongoDB based on output_mode."""
-        try:
-            if self.output_mode == "file":
-                for index, content in enumerate(contents, 1):
-                    topic_name = getattr(self, 'task_name', 'general')
-                    skill_name = getattr(self, 'skill_ids', ['unknown'])[0]
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"{self.llm_model}_questions_{skill_name}_{topic_name}_{timestamp}_batch{index}.txt".replace(" ", "_").replace("/", "_")
-                    os.makedirs("generated_questions", exist_ok=True)
-                    filepath = os.path.join("generated_questions", filename)
-                    with open(filepath, 'w') as f:
-                        f.write(content)
-                    print(f"✅ Content written to file: {filepath}")
-
-            elif self.output_mode == "mongo":
-                for content in contents:
-                    parsed_content = json.loads(content)
-                    if 'questions' in parsed_content:
-                        for question in parsed_content['questions']:
-                            if 'skill_id' in question:
-                                self.store_output_to_mongo(json.dumps([question]), question['skill_id'])
-
-            else:
-                raise ValueError(f"Invalid output_mode: {self.output_mode}")
-
-        except Exception as e:
-            print(f"❌ Error writing content: {str(e)}")
-            raise
-
     def _load_sample_questions(self, sample_questions_file):
         """
         Load and format sample questions from JSON file
@@ -566,6 +538,63 @@ class GlobalContext:
             print(f"Error loading sample questions from {sample_questions_file}: {e}")
             return ""
 
+    def get_questions_from_mongo(self, skill_name=None):
+        """Read from MongoDB. Filter by skill_name if provided, return list of questions"""
+        try:
+            print("\nConnecting to MongoDB...")
+            mongo_client, mongo_db = get_mongo_connection()
+            print(f"Connected to database: {mongo_db.name}")
+            
+            # Switch to the correct database
+            mongo_db = mongo_client["adaptive_db"]
+            print(f"Switched to database: {mongo_db.name}")
+            
+            # List all collections in the database
+            collections = mongo_db.list_collection_names()
+            print(f"Available collections: {collections}")
+            
+            # Use the correct collection name
+            collection_name = "questions"
+            print(f"\nUsing collection: {collection_name}")
+            
+            query = {"skill_name": skill_name} if skill_name else {}
+            print(f"MongoDB Query: {query}")
+            
+            # First, let's check if the collection exists and has any documents
+            collection = mongo_db[collection_name]
+            total_docs = collection.count_documents({})
+            print(f"Total documents in collection: {total_docs}")
+            
+            # Get a sample document to verify structure
+            sample_doc = collection.find_one({})
+            if sample_doc:
+                print("\nSample document structure:")
+                print(f"Available fields: {list(sample_doc.keys())}")
+                if 'skill_name' in sample_doc:
+                    print(f"Sample skill_name: {sample_doc['skill_name']}")
+            else:
+                print("\nNo documents found in the collection")
+            
+            # Now execute the actual query
+            questions = collection.find(query)
+            questions_list = list(questions)
+            print(f"\nFound {len(questions_list)} questions matching the query")
+            
+            if len(questions_list) == 0:
+                print("\nTrying to find any documents with similar skill_name...")
+                # Try a case-insensitive search
+                similar_docs = collection.find({"skill_name": {"$regex": skill_name, "$options": "i"}})
+                similar_list = list(similar_docs)
+                print(f"Found {len(similar_list)} documents with similar skill_name")
+                if similar_list:
+                    print("Sample similar skill_names:")
+                    for doc in similar_list[:3]:
+                        print(f"- {doc.get('skill_name', 'No skill_name')}")
+            
+            return questions_list
+        except Exception as e:
+            print(f"Error querying MongoDB: {str(e)}")
+            return []
 
 
 def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections):
@@ -612,75 +641,9 @@ class BaseWorkflow:
         print(f"Skill IDs: {getattr(context, 'skill_ids', [])}")
         return context
 
-    def fix_latex_escapes(self, text: str) -> str:
-        """Escapes LaTeX-style backslashes properly for JSON parsing."""
-        safe = re.sub(r'(?<!\\)\\(?![\\ntr"\/])', r'\\\\', text)
-        safe = re.sub(r'(?<!\\)\\infty', r'\\\\infty', safe)
-        print(f"Text after fixing escapes: {safe}")
-        return safe
-
     def get_prompts(self, parameters):
-        """Get system and user prompts from prompt builder"""
-        try:
-            system_prompt, user_prompt = self.context.prompt_builder.create_prompts(parameters)
-            if system_prompt is None or user_prompt is None:
-                print("Error: Could not create prompts.")
-                return None, None
-            return system_prompt, user_prompt
-        except Exception as e:
-            print(f"Error in get_prompts: {str(e)}")
-            return None, None
-
-    def generate_content_from_llm(self, system_prompt, user_prompt):
-        """Generate content using LLM with the given prompts"""
-        try:
-            llm_model = getattr(self.context, 'llm_model', 'openai')
-            temperature = getattr(self.context, 'temperature', 0.2)
-
-            print("\nCalling LLM API with model: ", llm_model)
-            ai_response_content = self.llm_connections.call_llm_api(
-                provider=llm_model,
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                temperature=temperature
-            )
-
-            if not ai_response_content:
-                print("Error: No response from LLM API")
-                return None
-
-            try:
-                ai_response_content = self.fix_latex_escapes(ai_response_content)
-                ai_response_content = ai_response_content.strip('`')
-                if ai_response_content.startswith('json'):
-                    ai_response_content = ai_response_content[4:].strip()
-                ai_response_content = ai_response_content.strip('`')
-
-                print(f"AI response content after cleaning: {ai_response_content}")
-                parsed_json = json.loads(ai_response_content)
-                
-                if not isinstance(parsed_json, dict):
-                    print("Error: Response is not a JSON object")
-                    return None
-                
-                if 'questions' not in parsed_json:
-                    print("Error: Response missing 'questions' key")
-                    return None
-                
-                if not isinstance(parsed_json['questions'], list):
-                    print("Error: 'questions' is not a list")
-                    return None
-
-                return ai_response_content
-
-            except json.JSONDecodeError as e:
-                print(f"Error: Invalid JSON response from LLM: {e}")
-                print("Raw response:", ai_response_content)
-                return None
-
-        except Exception as e:
-            print(f"Error in generate_content_from_prompts: {str(e)}")
-            return None
+        """Base method to be overridden by specific workflows"""
+        raise NotImplementedError("Subclasses must implement get_prompts method")
 
     def write_content(self, contents):
         """Write generated content to a JSON file or MongoDB based on output_mode."""
@@ -714,6 +677,32 @@ class BaseWorkflow:
 
 
 class QuestionGenerationWorkflow(BaseWorkflow):
+    def __init__(self):
+        super().__init__()
+        # Initialize services specific to generation workflow
+        self.prompt_builder = PromptBuilder(
+            system_prompt_template_path=self.context.generation_system_prompt_path,
+            user_prompt_template_path=self.context.generation_user_prompt_path
+        )
+
+    def get_prompts(self, parameters):
+        """Get prompts for question generation"""
+        try:
+            # Add generation-specific parameters
+            generation_params = {
+                **parameters,
+                'num_questions': getattr(self.context, 'num_questions', 1),
+                'prompt_type': getattr(self.context, 'prompt_type', 'Multiple Choice')
+            }
+            system_prompt, user_prompt = self.prompt_builder.create_prompts(generation_params)
+            if system_prompt is None or user_prompt is None:
+                print("Error: Could not create prompts.")
+                return None, None
+            return system_prompt, user_prompt
+        except Exception as e:
+            print(f"Error in get_prompts: {str(e)}")
+            return None, None
+
     def resolve_skills(self):
         print("Resolving skills...")
         skills_data = self.context.resolve_skills_from_context()
@@ -764,26 +753,90 @@ class QuestionGenerationWorkflow(BaseWorkflow):
 class QuestionEnhanceWorkflow(BaseWorkflow):
     def __init__(self):
         super().__init__()
-        self.questions = self.get_questions_from_mongo()
+        # Initialize services specific to enhancement workflow
+        self.prompt_builder = PromptBuilder(
+            system_prompt_template_path=self.context.enhance_system_prompt_path,
+            user_prompt_template_path=self.context.enhance_user_prompt_path
+        )
 
-    def get_questions_from_mongo(self, subject=None):
-        """Read from MongoDB. Filter by subject if provided, return list of questions"""
-        mongo_client = get_mongo_connection(DBConfig.MONGO_DB_NAME)
-        questions = mongo_client.find_many(collection_name="questions", query={"subject": subject})
-        return questions
+    def get_prompts(self, parameters):
+        """Get prompts for question enhancement"""
+        try:
+            system_prompt, user_prompt = self.prompt_builder.create_enhance_prompts(parameters)
+            if system_prompt is None or user_prompt is None:
+                print("Error: Could not create prompts.")
+                return None, None
+            return system_prompt, user_prompt
+        except Exception as e:
+            print(f"Error in get_prompts: {str(e)}")
+            return None, None
+
+    def get_questions_from_mongo(self, skill_name=None):
+        """Read from MongoDB. Filter by skill_name if provided, return list of questions"""
+        mongo_client, mongo_db = get_mongo_connection()
+        query = {"skill_name": skill_name} if skill_name else {}
+        questions = mongo_db["questions"].find(query)
+        return list(questions)
+
+    def prepare_prompt_parameters(self, question):
+        """Prepare parameters for the enhancement prompts"""
+        return {
+            'question': question['question'],
+            'subject': question['subject'],
+            'subject_area': question['subject_area'],
+            'skill': question['skill'],
+            'multiple_choices': question['multiple_choices'],
+            'correct_answer': question['correct_answer'],
+            'level': question['level'],
+            'level_num': question['level_num']
+        }
 
     def enhance_question(self, question):
         """Enhance a single question"""
-        # TODO: Implement question enhancement logic
-        pass
+        # Prepare parameters for the prompts
+        parameters = self.prepare_prompt_parameters(question)
+        
+        # Get prompts from prompt builder
+        system_prompt, user_prompt = self.get_prompts(parameters)
+        if system_prompt is None or user_prompt is None:
+            print(f"Failed to get prompts for question: {question['question']}")
+            return None
+
+        # Generate enhanced content
+        enhanced_content = self.context.generate_content_from_llm(system_prompt, user_prompt, self.llm_connections)
+        if enhanced_content is None:
+            print(f"Failed to enhance question: {question['question']}")
+            return None
+
+        return enhanced_content
 
     def run(self):
         try:
             print("Starting Question Enhancement Workflow...")
             
-            for question in self.questions:
-                enhanced_question = self.enhance_question(question)
-                # TODO: Save enhanced question back to MongoDB
+            # Get questions for specific skill
+            skill_name = "Analyzing-Limits and Continuity"
+            questions = self.get_questions_from_mongo(skill_name)
+            print(f"Found {len(questions)} questions for skill: {skill_name}")
+            
+            # Process each question
+            enhanced_contents = []
+            for question in questions:
+                print(f"\nProcessing question: {question['question']}")
+                enhanced_content = self.enhance_question(question)
+                if enhanced_content:
+                    enhanced_contents.append(enhanced_content)
+                    print(f"Successfully enhanced question: {question['question']}")
+                else:
+                    print(f"Failed to enhance question: {question['question']}")
+            
+            # Write enhanced content
+            if enhanced_contents:
+                print("\nWriting enhanced content...")
+                self.write_content(enhanced_contents)
+                print(f"✅ Successfully enhanced and wrote {len(enhanced_contents)} questions")
+            else:
+                print("❌ No questions were successfully enhanced")
                 
             print("✅ Question Enhancement Completed.")
 
@@ -794,7 +847,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
 
 def main():
     # Choose which workflow to run
-    workflow_type = "generate"  # or "generate"
+    workflow_type = "enhance"  # or "generate"
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()

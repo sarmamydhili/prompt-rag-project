@@ -50,7 +50,7 @@ class PromptBuilder:
 
     def create_prompts(self, parameters):
         """
-        Create system and user prompts based on the given parameters
+        Create system and user prompts for question generation
         Args:
             parameters: Dictionary containing parameters for prompt generation
         Returns:
@@ -86,4 +86,34 @@ class PromptBuilder:
 
         except Exception as e:
             print(f"Error creating prompts: {e}")
+            return None, None
+
+    def create_enhance_prompts(self, parameters):
+        """
+        Create system and user prompts for question enhancement
+        Args:
+            parameters: Dictionary containing parameters for prompt enhancement
+        Returns:
+            Tuple of (system_prompt, user_prompt)
+        """
+        try:
+            # Step 1: Prepare base parameters
+            base_params = {
+                'subject': parameters.get('subject', ''),
+                'subject_area': parameters.get('subject_area', ''),
+                'skill': parameters.get('skill', ''),
+                'question': parameters.get('question', ''),
+                'multiple_choices': parameters.get('multiple_choices', []),
+                'correct_answer': parameters.get('correct_answer', ''),
+                'level': parameters.get('level', ''),
+                'level_num': parameters.get('level_num', 0)
+            }
+
+            # Step 2: Generate prompts
+            system_prompt = self.system_prompt_template.format(**base_params)
+            user_prompt = self.user_prompt_template.format(**base_params)
+            return system_prompt, user_prompt
+
+        except Exception as e:
+            print(f"Error creating enhancement prompts: {e}")
             return None, None

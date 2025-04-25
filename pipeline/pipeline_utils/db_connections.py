@@ -57,7 +57,7 @@ def get_mongo_connection() -> Tuple[MongoClient, any]:
     """
     try:
         client = MongoClient(DBConfig.MONGO_URI)
-        db = client[DBConfig.MONGO_ADAPTIVE_DB_NAME]
+        db = client["adaptive_learning_docs"]
         return client, db
     except Exception as e:
         print(f"Error connecting to MongoDB: {e}")
