@@ -248,20 +248,30 @@ class GlobalContext:
                 print("\nParsed additional details:")
                 print(json.dumps(details, indent=2))
                 
-                # Use unit as the topic
-                skill = details.get('unit')
-                if not skill:
-                    print("Warning: No unit found in additional details")
-                    continue
-                    
-                print(f"\nUsing unit as topic: {skill}")
-                
-                # Get objectives as suggested skills
-                if 'objectives' in details:
-                    for objective in details['objectives']:
-                        if 'description' in objective:
+                # Handle the case where details is a list
+                if isinstance(details, list):
+                    # If it's a list of objectives, use them directly
+                    for objective in details:
+                        if isinstance(objective, dict) and 'description' in objective:
                             learning_objectives.append(objective['description'])
                             print(f"Added suggested skill: {objective['description']}")
+                    # Use the skill name as the topic
+                    skill = skill_data["skill_name"]
+                else:
+                    # Use unit as the topic if it's a dictionary
+                    skill = details.get('unit')
+                    if not skill:
+                        print("Warning: No unit found in additional details")
+                        continue
+                    
+                    # Get objectives as suggested skills
+                    if 'objectives' in details:
+                        for objective in details['objectives']:
+                            if 'description' in objective:
+                                learning_objectives.append(objective['description'])
+                                print(f"Added suggested skill: {objective['description']}")
+                
+                print(f"\nUsing skill as topic: {skill}")
                 
                 skill_topic_params.append({
                     'skill_id': skill_data["skill_id"],
@@ -847,7 +857,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
 
 def main():
     # Choose which workflow to run
-    workflow_type = "enhance"  # or "generate"
+    workflow_type = "generate"  # or "generate"
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()
