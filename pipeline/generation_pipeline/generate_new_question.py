@@ -739,7 +739,7 @@ class QuestionGenerationWorkflow(BaseWorkflow):
         try:
             # Step 3: Resolve Skills
             skills_data = self.resolve_skills()
-
+            print(f"Skills data in run method: {skills_data}")
             # Step 4: Prepare Parameters
             skill_topic_params = self.prepare_parameters(skills_data)
 

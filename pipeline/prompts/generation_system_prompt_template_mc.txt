@@ -62,13 +62,14 @@ Return a JSON object with the following structure:
       "correct_answer": "A",
       "level": "Remembering", 
       "level_num": 1,
-      "skill": <topic>, 
+      "skill": "topic", 
       "skill_id": 1,
       "skill_name": "<level>-<topic>",
       "subject": "Subject Name",
       "subject_area": "Subject Area",
       "subject_area_id": 1,
       "subject_id": 1,
+      "learning_objectives": ["Squeeze Theorem", "Limit Laws"],
       "hints": [
         {{
           "level": 1,
