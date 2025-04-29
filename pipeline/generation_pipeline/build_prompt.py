@@ -42,6 +42,7 @@ class PromptBuilder:
     def _format_learning_objectives(self, learning_objectives):
         """Format learning objectives into a string"""
         if learning_objectives:
+            print(f"Learning objectives: {learning_objectives}")
             return "### Learning Objectives:\n" + "\n".join([
                 f"{i+1}. {objective}"
                 for i, objective in enumerate(learning_objectives)
@@ -60,28 +61,35 @@ class PromptBuilder:
             # Step 1: Prepare base parameters
             base_params = {
                 'subject': parameters.get('subject', ''),
+                'subject_id': parameters.get('subject_id'),
                 'subject_area': parameters.get('subject_area', ''),
+                'subject_area_id': parameters.get('subject_area_id'),
+                'question': parameters.get('question', ''),
                 'skill': parameters.get('skill', ''),
                 'task_name': parameters.get('task_name', ''),
                 'learning_objectives': parameters.get('learning_objectives', []),
                 'num_questions': parameters.get('num_questions', 1),
                 'sample_questions_section': parameters.get('sample_questions_section', '')
             }
-
+            print('I am here',1)
+            print('learning_objectives',base_params['learning_objectives'])
             # Step 2: Format learning objectives
             learning_objectives_str = self._format_learning_objectives(base_params['learning_objectives'])
-
+            print('I am here',2) 
             # Step 3: Create final parameters dictionary
             final_params = {
                 **base_params,
-                'learning_objectives_str': learning_objectives_str
+                'learning_objectives': learning_objectives_str
             }
+            print('I am here',3)
             #print(f"Final params: {final_params}")
             # Step 4: Generate prompts
             system_prompt = self.system_prompt_template.format(**final_params)
-            #print(f"System prompt: {system_prompt}")
+            print('I am here',4)
+            print(f"System prompt: {system_prompt}")
             user_prompt = self.user_prompt_template.format(**final_params)
-            #print(f"User prompt: {user_prompt}")
+            print('I am here',5)
+            print(f"User prompt: {user_prompt}")
             return system_prompt, user_prompt
 
         except Exception as e:
@@ -100,13 +108,18 @@ class PromptBuilder:
             # Step 1: Prepare base parameters
             base_params = {
                 'subject': parameters.get('subject', ''),
+                'subject_id': parameters.get('subject_id'),
                 'subject_area': parameters.get('subject_area', ''),
-                'skill': parameters.get('skill', ''),
+                'subject_area_id': parameters.get('subject_area_id'),
                 'question': parameters.get('question', ''),
+                'skill': parameters.get('skill', ''),
+                'skill_name': parameters.get('skill_name', ''),
+                'skill_id': parameters.get('skill_id'),
                 'multiple_choices': parameters.get('multiple_choices', []),
                 'correct_answer': parameters.get('correct_answer', ''),
                 'level': parameters.get('level', ''),
-                'level_num': parameters.get('level_num', 0)
+                'level_num': parameters.get('level_num', 0),
+                'requires_diagram': parameters.get('requires_diagram', False)
             }
 
             # Step 2: Generate prompts

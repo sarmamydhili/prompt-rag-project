@@ -11,7 +11,7 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
 **IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
 
 **Instructions:**
-1. Ensure every question is highly challenging and directly related to the provided subject, topic, and skills.
+1. Ensure every question is highly challenging, creative  and directly related to the provided subject, topic, and skills.
 2. **CRITICAL: Generate questions that cover ALL learning objectives in the learning objectives above. Each skill must be represented by at least one question.**
 3. Questions must require Multi-Step Reasoning, Conceptual Depth, and Graphical or Experimental Analysis.
 4. Ensure:
@@ -24,7 +24,7 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
    - Four multiple-choice options (labeled A, B, C, D) with consistent formatting.
    - The correct answer (only the label, e.g., "A").
    - Bloom's Taxonomy level assignment ("Applying", "Analyzing", "Evaluating") and level number.
-   - topic 
+   - skill - same as topic 
    - skill_name concatenating bloom level and topic as "<level>-<Topic>" 
    - Subject 
    - Subject Area

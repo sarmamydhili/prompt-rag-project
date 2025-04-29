@@ -429,7 +429,7 @@ class GlobalContext:
         safe = re.sub(r'(?<!\\)\\(?![\\ntr"\/])', r'\\\\', text)
         # Specifically handle the \infty case
         safe = re.sub(r'(?<!\\)\\infty', r'\\\\infty', safe)
-        print(f"Text after fixing escapes: {safe}")
+        #print(f"Text after fixing escapes: {safe}")
         return safe
 
     def generate_content_from_llm(self, system_prompt, user_prompt, llm_connections):
@@ -465,7 +465,7 @@ class GlobalContext:
                     ai_response_content = ai_response_content[4:].strip()
                 ai_response_content = ai_response_content.strip('`')
 
-                print(f"AI response content after cleaning: {ai_response_content}")
+                #print(f"AI response content after cleaning: {ai_response_content}")
                 # Try to parse as JSON to validate
                 parsed_json = json.loads(ai_response_content)
                 
@@ -548,63 +548,19 @@ class GlobalContext:
             print(f"Error loading sample questions from {sample_questions_file}: {e}")
             return ""
 
-    def get_questions_from_mongo(self, skill_name=None):
-        """Read from MongoDB. Filter by skill_name if provided, return list of questions"""
-        try:
-            print("\nConnecting to MongoDB...")
-            mongo_client, mongo_db = get_mongo_connection()
-            print(f"Connected to database: {mongo_db.name}")
-            
-            # Switch to the correct database
-            mongo_db = mongo_client["adaptive_db"]
-            print(f"Switched to database: {mongo_db.name}")
-            
-            # List all collections in the database
-            collections = mongo_db.list_collection_names()
-            print(f"Available collections: {collections}")
-            
-            # Use the correct collection name
-            collection_name = "questions"
-            print(f"\nUsing collection: {collection_name}")
-            
-            query = {"skill_name": skill_name} if skill_name else {}
-            print(f"MongoDB Query: {query}")
-            
-            # First, let's check if the collection exists and has any documents
-            collection = mongo_db[collection_name]
-            total_docs = collection.count_documents({})
-            print(f"Total documents in collection: {total_docs}")
-            
-            # Get a sample document to verify structure
-            sample_doc = collection.find_one({})
-            if sample_doc:
-                print("\nSample document structure:")
-                print(f"Available fields: {list(sample_doc.keys())}")
-                if 'skill_name' in sample_doc:
-                    print(f"Sample skill_name: {sample_doc['skill_name']}")
-            else:
-                print("\nNo documents found in the collection")
-            
-            # Now execute the actual query
-            questions = collection.find(query)
-            questions_list = list(questions)
-            print(f"\nFound {len(questions_list)} questions matching the query")
-            
-            if len(questions_list) == 0:
-                print("\nTrying to find any documents with similar skill_name...")
-                # Try a case-insensitive search
-                similar_docs = collection.find({"skill_name": {"$regex": skill_name, "$options": "i"}})
-                similar_list = list(similar_docs)
-                print(f"Found {len(similar_list)} documents with similar skill_name")
-                if similar_list:
-                    print("Sample similar skill_names:")
-                    for doc in similar_list[:3]:
-                        print(f"- {doc.get('skill_name', 'No skill_name')}")
-            
-            return questions_list
-        except Exception as e:
-            print(f"Error querying MongoDB: {str(e)}")
-            return []
+    def get_questions_from_mongo(self, skill_name=None, limit=10):
+        """
+        Read from MongoDB. Filter by skill_name if provided, return list of questions
+        Args:
+            skill_name: Optional skill name to filter by
+            limit: Maximum number of questions to return (default: 10)
+        Returns:
+            List of questions
+        """
+        mongo_client, mongo_db = get_mongo_connection()
+        query = {"skill_name": skill_name} if skill_name else {}
+        questions = mongo_db["questions"].find(query).limit(limit)
+        return list(questions)
 
 
 def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections):
@@ -626,7 +582,7 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
         if system_prompt is None or user_prompt is None:
             print(f"Failed to get prompts for skill: {params['skill']}")
             continue
-        print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
+        #print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
         # Generate content
         content = context.generate_content_from_llm(system_prompt, user_prompt, llm_connections)
         if content:
@@ -781,24 +737,22 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             print(f"Error in get_prompts: {str(e)}")
             return None, None
 
-    def get_questions_from_mongo(self, skill_name=None):
-        """Read from MongoDB. Filter by skill_name if provided, return list of questions"""
-        mongo_client, mongo_db = get_mongo_connection()
-        query = {"skill_name": skill_name} if skill_name else {}
-        questions = mongo_db["questions"].find(query)
-        return list(questions)
-
     def prepare_prompt_parameters(self, question):
         """Prepare parameters for the enhancement prompts"""
         return {
             'question': question['question'],
             'subject': question['subject'],
+            'subject_id': question.get('subject_id'),
             'subject_area': question['subject_area'],
+            'subject_area_id': question.get('subject_area_id'),
             'skill': question['skill'],
+            'skill_name': question['skill_name'],
+            'skill_id': question['skill_id'],
             'multiple_choices': question['multiple_choices'],
             'correct_answer': question['correct_answer'],
             'level': question['level'],
-            'level_num': question['level_num']
+            'level_num': question['level_num'],
+            'requires_diagram': question.get('requires_diagram', False)
         }
 
     def enhance_question(self, question):
@@ -808,6 +762,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
         
         # Get prompts from prompt builder
         system_prompt, user_prompt = self.get_prompts(parameters)
+        print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
         if system_prompt is None or user_prompt is None:
             print(f"Failed to get prompts for question: {question['question']}")
             return None
@@ -826,13 +781,13 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             
             # Get questions for specific skill
             skill_name = "Analyzing-Limits and Continuity"
-            questions = self.get_questions_from_mongo(skill_name)
+            questions = self.context.get_questions_from_mongo(skill_name, limit=1)
             print(f"Found {len(questions)} questions for skill: {skill_name}")
             
             # Process each question
             enhanced_contents = []
             for question in questions:
-                print(f"\nProcessing question: {question['question']}")
+                #print(f"\nProcessing question: {question['question']}")
                 enhanced_content = self.enhance_question(question)
                 if enhanced_content:
                     enhanced_contents.append(enhanced_content)
@@ -857,7 +812,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
 
 def main():
     # Choose which workflow to run
-    workflow_type = "generate"  # or "generate"
+    workflow_type = "enhance"  # or "generate"
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()

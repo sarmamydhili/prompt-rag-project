@@ -2,14 +2,19 @@ Validate the following multiple-choice question and its answer:
 
 Original Question:
 {question}
-
-Parameters:
-- **Subject**: {subject}
-- **Subject Area**: {subject_area}
-- **Topic**: {skill}
-- **Learning Objectives**: 
-
-
+Original Subject: {subject}
+Original Subject Area: {subject_area}
+Original subject_id: {subject_id}
+Original subject_area_id: {subject_area_id}
+Original Skill: {skill}
+Original skill_id: {skill_id}
+Original Skill Name: {skill_name}
+Multiple Choices:
+{multiple_choices}
+Original Correct Answer: {correct_answer}
+Original Level: {level}
+Original Level Number: {level_num}
+Requires Diagram: {requires_diagram}
 
 **IMPORTANT: Do not ask any clarifying questions. Validate and correct the answer directly based on the provided parameters.**
 

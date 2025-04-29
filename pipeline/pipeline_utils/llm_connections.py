@@ -95,7 +95,7 @@ class LLMConnections:
             response = model.generate_content(contents=[prompt_content])
             print('Gemini API call successful.')
             ai_response_content = response.text
-            print('AI response received.')
+            print('gemini AI response received.')
             return ai_response_content
             #try:
             #    json.loads(ai_response_content)
@@ -128,7 +128,7 @@ class LLMConnections:
             )
             print('DeepSeek API call successful.')
             ai_response_content = completion.choices[0].message.content
-            print('AI response received.')
+            print('DeepSeek AI response received.')
             return ai_response_content
         except Exception as e:
             print(f"Error during DeepSeek API call or processing: {e}")
@@ -156,7 +156,7 @@ class LLMConnections:
             )
             print('Anthropic API call successful.')
             ai_response_content = message.content[0].text
-            print('AI response received.')
+            print('Anthropic AI response received.')
             return ai_response_content
         except Exception as e:
             print(f"Error during Anthropic API call or processing: {e}")
@@ -182,7 +182,7 @@ class LLMConnections:
             )
             print('Grok API call successful.')
             ai_response_content = completion.choices[0].message.content
-            print('AI response received.', ai_response_content)
+            print('Grok AI response received.', ai_response_content)
             return ai_response_content
         except Exception as e:
             print(f"Error during Grok API call or processing: {e}")

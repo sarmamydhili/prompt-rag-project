@@ -7,7 +7,6 @@ You are an experienced {subject} teacher who verifies and corrects answers to pr
 - Keep the question stem and multiple-choice options exactly as provided.
 - Verify if the marked correct answer is indeed correct.
 - If the current answer is incorrect, identify the correct answer and provide detailed justification.
-- Ensure the answer aligns with the learning objectives if provided in the learning objectives list.
 - Maintain the same Bloom's Taxonomy level and level number as the original question.
 - **IMPORTANT: Do not ask any clarifying questions. Validate and correct the answer directly based on the provided parameters.**
 - **Output only valid JSON** with no additional text or commentary.
@@ -38,7 +37,8 @@ The validated question must include:
    - Explain the reasoning process
    - Connect concepts to the correct answer
    - Address why other options are incorrect
-6. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code.
+6. If validated correct answer from step by step is different from Original Correct Answer, then verification_success is false.
+7. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code.
 
 ### Expected JSON Output:
 Return a JSON object with the following structure:
@@ -46,38 +46,36 @@ Return a JSON object with the following structure:
 {{
   "questions": [
     {{
-      "question": "Original question text (unchanged)",
+      "question": "Question text here...",
       "multiple_choices": [
-        "A. Original option A text",
-        "B. Original option B text",
-        "C. Original option C text",
-        "D. Original option D text"
+        "A. Option A text",
+        "B. Option B text",
+        "C. Option C text",
+        "D. Option D text"
       ],
-      "correct_answer": "Validated correct answer",
-      "level": "Original level", 
-      "level_num": original_level_num,
-      "skill": original_skill, 
-      "skill_id": original_skill_id,
-      "skill_name": original_skill_name,
-      "subject": "Original Subject Name",
-      "subject_area": "Original Subject Area",
-      "subject_area_id": original_subject_area_id,
-      "subject_id": original_subject_id,
+       "correct_answer": "Validated correct answer",
+        "level": "Original level", 
+        "level_num": "original level_num",
+        "skill": "original skill", 
+        "skill_id": "original skill_id",
+        "skill_name": "original skill_name",
+        "subject": "Original Subject Name",
+        "subject_area": "Original Subject Area",
+        "subject_area_id": "original subject_area_id",
+        "subject_id": "original subject_id",
+      "learning_objectives": ["Squeeze Theorem", "Limit Laws"],
       "hints": [
         {{
           "level": 1,
-          "hint": "Subtle hint pointing towards the concept...",
-          "requires_math": false
+          "hint": "Subtle hint pointing towards the concept..."
         }},
         {{
           "level": 2,
-          "hint": "More explicit hint with some mathematical guidance...",
-          "requires_math": true
+          "hint": "More explicit hint with some mathematical guidance..."
         }},
         {{
           "level": 3,
-          "hint": "Detailed hint almost revealing the solution...",
-          "requires_math": true
+          "hint": "Detailed hint almost revealing the solution..."
         }}
       ],
       "solution": {{
@@ -92,20 +90,13 @@ Return a JSON object with the following structure:
           }},
           {{
             "step_number": 3,
-            "explanation": "Final step and conclusion...",
-            "verification": "This matches the correct option exactly"
-          }}
-        ],
-        "alternative_approaches": [
+            "explanation": "Second step explanation..."
+          }},
           {{
-            "name": "Alternative Method",
-            "steps": [
-              {{
-                "step_number": 1,
-                "explanation": "Alternative first step..."
-              }}
-            ],
-            "verification": "This also leads to the correct option"
+            "step_number": 4,
+            "explanation": "Final step and conclusion...",
+            "verification": "This matches option A exactly: 'Option A text'",
+            "verification_success": true
           }}
         ],
         "explanation_of_incorrect_options": [
