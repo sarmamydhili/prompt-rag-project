@@ -548,18 +548,31 @@ class GlobalContext:
             print(f"Error loading sample questions from {sample_questions_file}: {e}")
             return ""
 
-    def get_questions_from_mongo(self, skill_name=None, limit=10):
+    def get_questions_from_mongo(self, skill_name=None, skill=None, limit=None):
         """
-        Read from MongoDB. Filter by skill_name if provided, return list of questions
+        Read from MongoDB. Filter by skill_name and/or skill if provided, return list of questions
         Args:
             skill_name: Optional skill name to filter by
-            limit: Maximum number of questions to return (default: 10)
+            skill: Optional skill to filter by
+            limit: Maximum number of questions to return (default: None, returns all records)
         Returns:
             List of questions
         """
         mongo_client, mongo_db = get_mongo_connection()
-        query = {"skill_name": skill_name} if skill_name else {}
-        questions = mongo_db["questions"].find(query).limit(limit)
+        
+        # Build query based on provided parameters
+        query = {}
+        if skill_name:
+            query["skill_name"] = skill_name
+        elif skill:
+            query["skill"] = skill
+            
+        # Apply limit only if specified
+        if limit is not None:
+            questions = mongo_db["questions"].find(query).limit(limit)
+        else:
+            questions = mongo_db["questions"].find(query)
+            
         return list(questions)
 
 
@@ -615,16 +628,27 @@ class BaseWorkflow:
         """Write generated content to a JSON file or MongoDB based on output_mode."""
         try:
             if self.context.output_mode == "file":
-                for index, content in enumerate(contents, 1):
-                    topic_name = getattr(self.context, 'task_name', 'general')
-                    skill_name = getattr(self.context, 'skill_ids', ['unknown'])[0]
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"{self.context.llm_model}_questions_{skill_name}_{topic_name}_{timestamp}_batch{index}.txt".replace(" ", "_").replace("/", "_")
-                    os.makedirs("generated_questions", exist_ok=True)
-                    filepath = os.path.join("generated_questions", filename)
-                    with open(filepath, 'w') as f:
-                        f.write(content)
-                    print(f"✅ Content written to file: {filepath}")
+                # Create a single file for all enhanced questions
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"enhanced_questions_{timestamp}.json"
+                os.makedirs("generated_questions", exist_ok=True)
+                filepath = os.path.join("generated_questions", filename)
+                
+                # Combine all contents into a single JSON array
+                all_questions = []
+                for content in contents:
+                    try:
+                        parsed_content = json.loads(content)
+                        if 'questions' in parsed_content:
+                            all_questions.extend(parsed_content['questions'])
+                    except json.JSONDecodeError:
+                        print(f"Warning: Could not parse content as JSON: {content}")
+                        continue
+                
+                # Write all questions to a single file
+                with open(filepath, 'w') as f:
+                    json.dump({"questions": all_questions}, f, indent=2)
+                print(f"✅ All enhanced questions written to file: {filepath}")
 
             elif self.context.output_mode == "mongo":
                 for content in contents:
@@ -780,9 +804,10 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             print("Starting Question Enhancement Workflow...")
             
             # Get questions for specific skill
-            skill_name = "Analyzing-Limits and Continuity"
-            questions = self.context.get_questions_from_mongo(skill_name, limit=1)
-            print(f"Found {len(questions)} questions for skill: {skill_name}")
+            pskill = "Limits and Continuity"
+            #questions = self.context.get_questions_from_mongo(skill_name, limit=1)
+            questions = self.context.get_questions_from_mongo(skill=pskill, limit=2)
+            print(f"Found {len(questions)} questions for skill: {pskill}")
             
             # Process each question
             enhanced_contents = []
