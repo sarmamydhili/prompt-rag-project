@@ -25,6 +25,8 @@ import config
 from pipeline.pipeline_utils.db_connections import get_mysql_connection, get_mongo_connection, get_chroma_connection, DBConfig, save_to_mongodb, save_to_chroma
 from pipeline.generation_pipeline.build_prompt import PromptBuilder
 from pipeline.pipeline_utils.llm_connections import LLMConnections
+from pipeline.pipeline_utils.mongo_operations import MongoOperations
+from pipeline.pipeline_utils.sql_operations import SQLOperations
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -39,6 +41,8 @@ class GlobalContext:
         self.chroma_client = None
         self.chroma_collection = None
         self.prompt_builder = None
+        self.mongo_operations = None
+        self.sql_operations = None
 
         # Collection names
         self.mongo_collection_name = DBConfig.MONGO_QUESTIONS_COLLECTION
@@ -104,6 +108,8 @@ class GlobalContext:
         self.mysql_conn = get_mysql_connection()
         self.mongo_client, self.mongo_db = get_mongo_connection()
         self.chroma_client, self.chroma_collection = get_chroma_connection()
+        self.mongo_operations = MongoOperations()
+        self.sql_operations = SQLOperations()
         
         # Initialize services
         self.prompt_builder = PromptBuilder(
@@ -132,91 +138,25 @@ class GlobalContext:
         print(f"Task name: {getattr(self, 'task_name', None)}")
         print(f"Skill IDs: {getattr(self, 'skill_ids', None)}")
         
-        cursor = self.mysql_conn.cursor()
-        skills_data = []
-
         try:
             # Priority 1: Check for skill_ids
             if hasattr(self, 'skill_ids') and self.skill_ids:
                 print("\nUsing skill_ids as priority...")
-                query = """
-                    SELECT
-                        s.skill_id,
-                        s.skill_name,
-                        s.additional_details,
-                        s.subject_area,
-                        s.subject,
-                        t.task_name
-                    FROM
-                        adaptive_skills s
-                    LEFT JOIN
-                        adaptive_task_skills t ON s.skill_id = t.skill_id
-                    WHERE
-                        s.skill_id = %s
-                """
-                for skill_id in self.skill_ids:
-                    print(f"Querying for skill_id: {skill_id}")
-                    cursor.execute(query, (skill_id,))
-                    result = cursor.fetchone()
-                    if result:
-                        print(f"Found skill: {result[1]} (ID: {result[0]})")
-                        skills_data.append({
-                            "skill_id": result[0],
-                            "skill_name": result[1],
-                            "skill_additional_details": result[2],
-                            "subject_area": result[3],
-                            "subject": result[4],
-                            "task_name": result[5]
-                        })
-                    else:
-                        print(f"No skill found for skill_id: {skill_id}")
-                    # Ensure all results are consumed
-                    while cursor.fetchone() is not None:
-                        pass
-                print(f"\nTotal skills found from skill_ids: {len(skills_data)}")
-                return skills_data
+                return self.sql_operations.get_skills_by_ids(self.skill_ids)
 
             # Priority 2: Check for task_name
             elif hasattr(self, 'task_name') and self.task_name:
                 print("\nUsing task_name as fallback...")
-                query = """
-                    SELECT
-                        s.skill_id,
-                        s.skill_name,
-                        s.additional_details,
-                        s.subject_area,
-                        s.subject,
-                        t.task_name
-                    FROM
-                        adaptive_skills s
-                    INNER JOIN
-                        adaptive_task_skills t ON s.skill_id = t.skill_id
-                    WHERE
-                        t.task_name = %s
-                """
-                print(f"Querying for task: {self.task_name}")
-                cursor.execute(query, (self.task_name,))
-                results = cursor.fetchall()
-                for result in results:
-                    print(f"Found skill: {result[1]} (ID: {result[0]})")
-                    skills_data.append({
-                        "skill_id": result[0],
-                        "skill_name": result[1],
-                        "skill_additional_details": result[2],
-                        "subject_area": result[3],
-                        "subject": result[4],
-                        "task_name": result[5]
-                    })
-                #print(f"\nTotal skills found from task: {len(skills_data)}")
-                return skills_data
+                return self.sql_operations.get_skills_by_task_name(self.task_name)
 
             else:
                 print("Error: Neither skill_ids nor task_name provided in context")
                 raise ValueError("Either skill_ids or task_name must be provided in context.")
 
-        finally:
-            cursor.close()
-  
+        except Exception as e:
+            print(f"Error resolving skills: {str(e)}")
+            raise
+
     def get_skill_topic_parameters(self, skills_data):
         """
         Get skill and topic parameters for all skills.
@@ -548,33 +488,6 @@ class GlobalContext:
             print(f"Error loading sample questions from {sample_questions_file}: {e}")
             return ""
 
-    def get_questions_from_mongo(self, skill_name=None, skill=None, limit=None):
-        """
-        Read from MongoDB. Filter by skill_name and/or skill if provided, return list of questions
-        Args:
-            skill_name: Optional skill name to filter by
-            skill: Optional skill to filter by
-            limit: Maximum number of questions to return (default: None, returns all records)
-        Returns:
-            List of questions
-        """
-        mongo_client, mongo_db = get_mongo_connection()
-        
-        # Build query based on provided parameters
-        query = {}
-        if skill_name:
-            query["skill_name"] = skill_name
-        elif skill:
-            query["skill"] = skill
-            
-        # Apply limit only if specified
-        if limit is not None:
-            questions = mongo_db["questions"].find(query).limit(limit)
-        else:
-            questions = mongo_db["questions"].find(query)
-            
-        return list(questions)
-
 
 def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections):
     """
@@ -743,61 +656,8 @@ class QuestionGenerationWorkflow(BaseWorkflow):
 class QuestionEnhanceWorkflow(BaseWorkflow):
     def __init__(self):
         super().__init__()
-        # Initialize services specific to enhancement workflow
-        self.prompt_builder = PromptBuilder(
-            system_prompt_template_path=self.context.enhance_system_prompt_path,
-            user_prompt_template_path=self.context.enhance_user_prompt_path
-        )
-
-    def get_prompts(self, parameters):
-        """Get prompts for question enhancement"""
-        try:
-            system_prompt, user_prompt = self.prompt_builder.create_enhance_prompts(parameters)
-            if system_prompt is None or user_prompt is None:
-                print("Error: Could not create prompts.")
-                return None, None
-            return system_prompt, user_prompt
-        except Exception as e:
-            print(f"Error in get_prompts: {str(e)}")
-            return None, None
-
-    def prepare_prompt_parameters(self, question):
-        """Prepare parameters for the enhancement prompts"""
-        return {
-            'question': question['question'],
-            'subject': question['subject'],
-            'subject_id': question.get('subject_id'),
-            'subject_area': question['subject_area'],
-            'subject_area_id': question.get('subject_area_id'),
-            'skill': question['skill'],
-            'skill_name': question['skill_name'],
-            'skill_id': question['skill_id'],
-            'multiple_choices': question['multiple_choices'],
-            'correct_answer': question['correct_answer'],
-            'level': question['level'],
-            'level_num': question['level_num'],
-            'requires_diagram': question.get('requires_diagram', False)
-        }
-
-    def enhance_question(self, question):
-        """Enhance a single question"""
-        # Prepare parameters for the prompts
-        parameters = self.prepare_prompt_parameters(question)
-        
-        # Get prompts from prompt builder
-        system_prompt, user_prompt = self.get_prompts(parameters)
-        print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
-        if system_prompt is None or user_prompt is None:
-            print(f"Failed to get prompts for question: {question['question']}")
-            return None
-
-        # Generate enhanced content
-        enhanced_content = self.context.generate_content_from_llm(system_prompt, user_prompt, self.llm_connections)
-        if enhanced_content is None:
-            print(f"Failed to enhance question: {question['question']}")
-            return None
-
-        return enhanced_content
+        self.context = GlobalContext()
+        self.context.initialize()
 
     def run(self):
         try:
@@ -805,14 +665,12 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             
             # Get questions for specific skill
             pskill = "Limits and Continuity"
-            #questions = self.context.get_questions_from_mongo(skill_name, limit=1)
-            questions = self.context.get_questions_from_mongo(skill=pskill, limit=2)
+            questions = self.context.mongo_operations.get_questions_by_skill(skill=pskill, limit=2)
             print(f"Found {len(questions)} questions for skill: {pskill}")
             
             # Process each question
             enhanced_contents = []
             for question in questions:
-                #print(f"\nProcessing question: {question['question']}")
                 enhanced_content = self.enhance_question(question)
                 if enhanced_content:
                     enhanced_contents.append(enhanced_content)
@@ -834,10 +692,43 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             print(f"❌ Error in enhancement workflow: {str(e)}")
             raise
 
+    def enhance_question(self, question):
+        """Enhance a single question"""
+        # Prepare parameters for the prompts
+        parameters = {
+            'question': question['question'],
+            'subject': question['subject'],
+            'subject_id': question.get('subject_id'),
+            'subject_area': question['subject_area'],
+            'subject_area_id': question.get('subject_area_id'),
+            'skill': question['skill'],
+            'skill_name': question['skill_name'],
+            'skill_id': question['skill_id'],
+            'multiple_choices': question['multiple_choices'],
+            'correct_answer': question['correct_answer'],
+            'level': question['level'],
+            'level_num': question['level_num'],
+            'requires_diagram': question.get('requires_diagram', False)
+        }
+        
+        # Get prompts from prompt builder
+        system_prompt, user_prompt = self.get_prompts(parameters)
+        if system_prompt is None or user_prompt is None:
+            print(f"Failed to get prompts for question: {question['question']}")
+            return None
+
+        # Generate enhanced content
+        enhanced_content = self.context.generate_content_from_llm(system_prompt, user_prompt, self.llm_connections)
+        if enhanced_content is None:
+            print(f"Failed to enhance question: {question['question']}")
+            return None
+
+        return enhanced_content
+
 
 def main():
     # Choose which workflow to run
-    workflow_type = "enhance"  # or "generate"
+    workflow_type = "generate"  # or "generate"
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()
