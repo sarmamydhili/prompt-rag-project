@@ -43,7 +43,11 @@ Each question must include:
    - Connect concepts to the correct answer
    - Address why other options are incorrect
 6. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code. Example of correctly escaped LaTeX
-7. DON'T ASK any
+7. DON'T ASK any Questions
+8. Make sure to assign learning objectiveds in the question structure below from the list given **learning_objectives** 
+
+**learning_objectives**
+{learning_objectives}
 
 
 ### Expected JSON Output:
@@ -69,7 +73,7 @@ Return a JSON object with the following structure:
       "subject_area": "Subject Area",
       "subject_area_id": 1,
       "subject_id": 1,
-      "learning_objectives": ["Squeeze Theorem", "Limit Laws"],
+      "learning_objectives": ["objecive", "objective"],
       "hints": [
         {{
           "level": 1,

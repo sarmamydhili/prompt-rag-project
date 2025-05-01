@@ -16,6 +16,10 @@ Original Level: {level}
 Original Level Number: {level_num}
 Requires Diagram: {requires_diagram}
 
+
+**learning objectives**
+{learning_objectives}
+
 **IMPORTANT: Do not ask any clarifying questions. Validate and correct the answer directly based on the provided parameters.**
 
 **Instructions:**

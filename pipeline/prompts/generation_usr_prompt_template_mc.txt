@@ -2,8 +2,8 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
 - **Subject**: {subject}
 - **Subject Area**: {subject_area}
 - **topic**: {skill}
-- **learning_objectives**: 
 
+- **learning_objectives**: 
 {learning_objectives}
 
 {sample_questions_section}

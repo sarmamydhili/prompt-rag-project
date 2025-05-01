@@ -119,7 +119,9 @@ class PromptBuilder:
                 'correct_answer': parameters.get('correct_answer', ''),
                 'level': parameters.get('level', ''),
                 'level_num': parameters.get('level_num', 0),
-                'requires_diagram': parameters.get('requires_diagram', False)
+                'requires_diagram': parameters.get('requires_diagram', False),
+                'learning_objectives': parameters.get('learning_objectives', []),
+                'skill_topic': parameters.get('skill_topic', '')
             }
 
             # Step 2: Generate prompts

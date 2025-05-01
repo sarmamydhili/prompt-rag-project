@@ -39,7 +39,7 @@ The validated question must include:
    - Address why other options are incorrect
 6. If validated correct answer from step by step is different from Original Correct Answer, then verification_success is false.
 7. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code.
-
+8. Make sure to assign correct **learning_objectives** from the list given
 ### Expected JSON Output:
 Return a JSON object with the following structure:
 
@@ -63,7 +63,7 @@ Return a JSON object with the following structure:
         "subject_area": "Original Subject Area",
         "subject_area_id": "original subject_area_id",
         "subject_id": "original subject_id",
-      "learning_objectives": ["Squeeze Theorem", "Limit Laws"],
+        "learning_objectives": [objective1, objective2],
       "hints": [
         {{
           "level": 1,

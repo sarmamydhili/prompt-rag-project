@@ -157,6 +157,52 @@ class GlobalContext:
             print(f"Error resolving skills: {str(e)}")
             raise
 
+    def _format_learning_objectives(self, additional_details: str, skill_name: str) -> tuple[List[str], str]:
+        """
+        Format learning objectives from additional details
+        Args:
+            additional_details: JSON string containing additional details
+            skill_name: Name of the skill
+        Returns:
+            Tuple of (list of learning objectives, skill topic)
+        """
+        learning_objectives = []
+        try:
+            # Parse the additional details
+            details = json.loads(additional_details)
+            print("\nParsed additional details:")
+            print(json.dumps(details, indent=2))
+            
+            # Handle the case where details is a list
+            if isinstance(details, list):
+                # If it's a list of objectives, use them directly
+                for objective in details:
+                    if isinstance(objective, dict) and 'description' in objective:
+                        learning_objectives.append(objective['description'])
+                        print(f"Added suggested skill: {objective['description']}")
+                # Use the skill name as the topic
+                skill = skill_name
+            else:
+                # Use unit as the topic if it's a dictionary
+                skill = details.get('unit')
+                if not skill:
+                    print("Warning: No unit found in additional details")
+                    return [], skill_name
+                
+                # Get objectives as suggested skills
+                if 'objectives' in details:
+                    for objective in details['objectives']:
+                        if 'description' in objective:
+                            learning_objectives.append(objective['description'])
+                            print(f"Added suggested skill: {objective['description']}")
+            
+            print(f"\nUsing skill as topic: {skill}")
+            return learning_objectives, skill
+
+        except json.JSONDecodeError as e:
+            print(f"Error parsing additional details: {e}")
+            return [], skill_name
+
     def get_skill_topic_parameters(self, skills_data):
         """
         Get skill and topic parameters for all skills.
@@ -173,70 +219,29 @@ class GlobalContext:
         for skill_data in skills_data:
             print(f"\nProcessing skill: {skill_data['skill_name']}")
             
-            # Initialize learning_objectives with empty list
-            learning_objectives = []
-            
             # Get the additional details
             additional_details = skill_data.get('skill_additional_details', {})
             if not additional_details:
                 print("Warning: No additional details found for skill")
                 continue
                 
-            try:
-                # Parse the additional details
-                details = json.loads(additional_details)
-                print("\nParsed additional details:")
-                print(json.dumps(details, indent=2))
-                
-                # Handle the case where details is a list
-                if isinstance(details, list):
-                    # If it's a list of objectives, use them directly
-                    for objective in details:
-                        if isinstance(objective, dict) and 'description' in objective:
-                            learning_objectives.append(objective['description'])
-                            print(f"Added suggested skill: {objective['description']}")
-                    # Use the skill name as the topic
-                    skill = skill_data["skill_name"]
-                else:
-                    # Use unit as the topic if it's a dictionary
-                    skill = details.get('unit')
-                    if not skill:
-                        print("Warning: No unit found in additional details")
-                        continue
-                    
-                    # Get objectives as suggested skills
-                    if 'objectives' in details:
-                        for objective in details['objectives']:
-                            if 'description' in objective:
-                                learning_objectives.append(objective['description'])
-                                print(f"Added suggested skill: {objective['description']}")
-                
-                print(f"\nUsing skill as topic: {skill}")
-                
-                skill_topic_params.append({
-                    'skill_id': skill_data["skill_id"],
-                    'skill': skill_data["skill_name"],
-                    'subject_area': skill_data["subject_area"],
-                    'subject': skill_data["subject"],
-                    'task_name': skill_data["task_name"],
-                    'learning_objectives': learning_objectives
-                })
-                
-                print(f"\nAdded parameters for skill: {skill}")
-                print(f"Number of suggested skills: {len(learning_objectives)}")
-                
-            except json.JSONDecodeError as e:
-                print(f"Error parsing additional details: {e}")
-                # Even if parsing fails, we still add the skill with empty learning_objectives
-                skill_topic_params.append({
-                    'skill_id': skill_data["skill_id"],
-                    'skill': skill_data["skill_name"],
-                    'subject_area': skill_data["subject_area"],
-                    'subject': skill_data["subject"],
-                    'task_name': skill_data["task_name"],
-                    'learning_objectives': learning_objectives
-                })
-                continue
+            # Format learning objectives
+            learning_objectives, skill = self._format_learning_objectives(
+                additional_details, 
+                skill_data["skill_name"]
+            )
+            
+            skill_topic_params.append({
+                'skill_id': skill_data["skill_id"],
+                'skill': skill_data["skill_name"],
+                'subject_area': skill_data["subject_area"],
+                'subject': skill_data["subject"],
+                'task_name': skill_data["task_name"],
+                'learning_objectives': learning_objectives
+            })
+            
+            print(f"\nAdded parameters for skill: {skill}")
+            print(f"Number of suggested skills: {len(learning_objectives)}")
                 
         print(f"\nTotal skill-topic parameters created: {len(skill_topic_params)}")
         print("="*50 + "\n")
@@ -541,9 +546,12 @@ class BaseWorkflow:
         """Write generated content to a JSON file or MongoDB based on output_mode."""
         try:
             if self.context.output_mode == "file":
-                # Create a single file for all enhanced questions
+                # Create a single file for all questions
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"enhanced_questions_{timestamp}.json"
+                # Determine prefix based on workflow type
+                prefix = "enhanced_questions" if isinstance(self, QuestionEnhanceWorkflow) else "generated_questions"
+                filename = f"{prefix}_{timestamp}.json"
+                
                 os.makedirs("generated_questions", exist_ok=True)
                 filepath = os.path.join("generated_questions", filename)
                 
@@ -561,7 +569,7 @@ class BaseWorkflow:
                 # Write all questions to a single file
                 with open(filepath, 'w') as f:
                     json.dump({"questions": all_questions}, f, indent=2)
-                print(f"✅ All enhanced questions written to file: {filepath}")
+                print(f"✅ All {prefix} written to file: {filepath}")
 
             elif self.context.output_mode == "mongo":
                 for content in contents:
@@ -614,12 +622,6 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             raise ValueError("No skills data found for the given context")
         return skills_data
 
-    def prepare_parameters(self, skills_data):
-        print("Preparing parameters...")
-        skill_topic_params = self.context.get_skill_topic_parameters(skills_data)
-        print(f"Skill topic parameters: {skill_topic_params}")
-        return skill_topic_params
-
     def load_sample_questions(self):
         sample_questions_section = ""
         sample_questions_file = getattr(self.context, 'sample_questions_file', None)
@@ -633,8 +635,10 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             # Step 3: Resolve Skills
             skills_data = self.resolve_skills()
             print(f"Skills data in run method: {skills_data}")
-            # Step 4: Prepare Parameters
-            skill_topic_params = self.prepare_parameters(skills_data)
+            
+            # Step 4: Get Skill Topic Parameters directly from context
+            skill_topic_params = self.context.get_skill_topic_parameters(skills_data)
+            print(f"Skill topic parameters: {skill_topic_params}")
 
             # Step 5: Load Sample Questions
             sample_questions_section = self.load_sample_questions()
@@ -658,6 +662,79 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
         super().__init__()
         self.context = GlobalContext()
         self.context.initialize()
+        # Initialize prompt builder with enhancement templates
+        self.prompt_builder = PromptBuilder(
+            system_prompt_template_path=self.context.enhance_system_prompt_path,
+            user_prompt_template_path=self.context.enhance_user_prompt_path
+        )
+
+    def get_prompts(self, parameters):
+        """
+        Override get_prompts to use enhancement-specific prompt creation
+        Args:
+            parameters: Dictionary containing parameters for prompt enhancement
+        Returns:
+            Tuple of (system_prompt, user_prompt) or (None, None) if failed
+        """
+        try:
+            return self.prompt_builder.create_enhance_prompts(parameters)
+        except Exception as e:
+            print(f"Error in get_prompts: {str(e)}")
+            return None, None
+
+    def enhance_question(self, question):
+        """Enhance a single question"""
+        try:
+            # Get skill details from SQL database
+            skill_data = self.context.sql_operations.get_skills_by_ids([question['skill_id']])
+            if not skill_data:
+                print(f"Warning: No skill data found for skill_id: {question['skill_id']}")
+                return None
+                
+            skill = skill_data[0]  # Get the first (and should be only) skill
+            
+            # Format learning objectives from additional details
+            learning_objectives, skill_topic = self.context._format_learning_objectives(
+                skill.get('skill_additional_details', '{}'),
+                skill['skill_name']
+            )
+            
+            # Prepare parameters for the prompts
+            parameters = {
+                'question': question['question'],
+                'subject': question['subject'],
+                'subject_id': question.get('subject_id'),
+                'subject_area': question['subject_area'],
+                'subject_area_id': question.get('subject_area_id'),
+                'skill': question['skill'],
+                'skill_name': question['skill_name'],
+                'skill_id': question['skill_id'],
+                'multiple_choices': question['multiple_choices'],
+                'correct_answer': question['correct_answer'],
+                'level': question['level'],
+                'level_num': question['level_num'],
+                'requires_diagram': question.get('requires_diagram', False),
+                'learning_objectives': learning_objectives,
+                'skill_topic': skill_topic
+            }
+            
+            # Get prompts using the overridden get_prompts method
+            system_prompt, user_prompt = self.get_prompts(parameters)
+            if system_prompt is None or user_prompt is None:
+                print(f"Failed to get prompts for question: {question['question']}")
+                return None
+
+            # Generate enhanced content
+            enhanced_content = self.context.generate_content_from_llm(system_prompt, user_prompt, self.llm_connections)
+            if enhanced_content is None:
+                print(f"Failed to enhance question: {question['question']}")
+                return None
+
+            return enhanced_content
+            
+        except Exception as e:
+            print(f"Error enhancing question: {str(e)}")
+            return None
 
     def run(self):
         try:
@@ -692,43 +769,10 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             print(f"❌ Error in enhancement workflow: {str(e)}")
             raise
 
-    def enhance_question(self, question):
-        """Enhance a single question"""
-        # Prepare parameters for the prompts
-        parameters = {
-            'question': question['question'],
-            'subject': question['subject'],
-            'subject_id': question.get('subject_id'),
-            'subject_area': question['subject_area'],
-            'subject_area_id': question.get('subject_area_id'),
-            'skill': question['skill'],
-            'skill_name': question['skill_name'],
-            'skill_id': question['skill_id'],
-            'multiple_choices': question['multiple_choices'],
-            'correct_answer': question['correct_answer'],
-            'level': question['level'],
-            'level_num': question['level_num'],
-            'requires_diagram': question.get('requires_diagram', False)
-        }
-        
-        # Get prompts from prompt builder
-        system_prompt, user_prompt = self.get_prompts(parameters)
-        if system_prompt is None or user_prompt is None:
-            print(f"Failed to get prompts for question: {question['question']}")
-            return None
-
-        # Generate enhanced content
-        enhanced_content = self.context.generate_content_from_llm(system_prompt, user_prompt, self.llm_connections)
-        if enhanced_content is None:
-            print(f"Failed to enhance question: {question['question']}")
-            return None
-
-        return enhanced_content
-
 
 def main():
     # Choose which workflow to run
-    workflow_type = "generate"  # or "generate"
+    workflow_type = "enhance"  # or "generate"
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()
