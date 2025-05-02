@@ -44,9 +44,10 @@ class GlobalContext:
         self.mongo_operations = None
         self.sql_operations = None
 
-        # Collection names
-        self.mongo_collection_name = DBConfig.MONGO_QUESTIONS_COLLECTION
-        self.chroma_collection_name = DBConfig.CHROMA_COLLECTION_NAME
+        # Collection names will be loaded from task_config
+        self.mongo_questions_collection = None  # For reading questions
+        self.mongo_output_collection_name = None  # For writing enhanced/generated questions
+        self.chroma_collection_name = None
 
         # Load application configurations from JSON
         self._load_app_config()
@@ -73,6 +74,11 @@ class GlobalContext:
             for section in config.sections():
                 for key, value in config.items(section):
                     setattr(self, key, value)
+
+            # Set collection names from task_config
+            self.mongo_questions_collection = getattr(self, 'mongo_questions_collection', 'questions')
+            self.mongo_output_collection_name = getattr(self, 'mongo_output_collection_name', 'enhanced_questions')
+            self.chroma_collection_name = getattr(self, 'chroma_collection_name', 'questions_embeddings')
 
             # Verify the properties were set
             required_props = ['task_name', 'skill_ids', 'num_questions', 'prompt_type', 'output_mode']
@@ -409,36 +415,7 @@ class GlobalContext:
                 if ai_response_content.startswith('json'):
                     ai_response_content = ai_response_content[4:].strip()
                 ai_response_content = ai_response_content.strip('`')
-
-                #print(f"AI response content after cleaning: {ai_response_content}")
-                # Try to parse as JSON to validate
-                parsed_json = json.loads(ai_response_content)
-                
-                # Handle both single question object and array of questions
-                questions_to_process = []
-                if isinstance(parsed_json, dict):
-                    if 'questions' in parsed_json:
-                        questions_to_process = parsed_json['questions']
-                    else:
-                        # Single question object
-                        questions_to_process = [parsed_json]
-                elif isinstance(parsed_json, list):
-                    # Array of questions
-                    questions_to_process = parsed_json
-                else:
-                    print("Error: Response is neither a JSON object nor an array")
-                    return None
-
-                # Process each question
-                for question in questions_to_process:
-                    if isinstance(question, dict):
-                        question['created_at'] = datetime.utcnow()
-                        questions_collection = self.mongo_db[self.mongo_collection_name]
-                        questions_collection.insert_one(question)
-                        print(f"Inserted question {question['question']} in collection:  {self.mongo_collection_name}")
-                    else:
-                        print(f"Skipped non-dictionary item: {question}")
-
+            
                 return ai_response_content
 
             except json.JSONDecodeError as e:
@@ -461,11 +438,11 @@ class GlobalContext:
                 f.write(content)
             print(f"✅ Content written to file: {filepath}")
 
-    def store_output_to_mongo(self, content, skill_id):
+    def store_output_to_mongo(self, content):
         if content:
             try:
                 parsed_json = json.loads(content)
-                questions_collection = self.mongo_db[self.mongo_collection_name]
+                questions_collection = self.mongo_db[self.mongo_output_collection_name]
                 
                 # Handle both array of questions and single question object
                 questions_to_process = []
@@ -480,10 +457,9 @@ class GlobalContext:
                 for question in questions_to_process:
                     if isinstance(question, dict):
                         question['created_at'] = datetime.utcnow()
-                        print(f"Inserting question: {question['question']} in collection: {self.mongo_collection_name}")
+                        print(f"Inserting question: {question['question']} in collection: {self.mongo_output_collection_name}")
                         questions_collection.insert_one(question)
-                        print(f"Inserted question: {question['question']} in collection: {self.mongo_collection_name}")
-
+                        print(f"Inserted question: {question['question']} in collection: {self.mongo_output_collection_name}")
                     else:
                         print(f"Skipped non-dictionary item: {question}")
                         
@@ -540,6 +516,7 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
         content = context.generate_content_from_llm(system_prompt, user_prompt, llm_connections)
         if content:
             all_contents.append(content)
+        #print(f"******Content: {content}")    
     return all_contents
 
 class BaseWorkflow:
@@ -591,15 +568,15 @@ class BaseWorkflow:
                 # Write all questions to a single file
                 with open(filepath, 'w') as f:
                     json.dump({"questions": all_questions}, f, indent=2)
-                print(f"✅ All {prefix} written to file: {filepath}")
+                #print(f"✅ All {prefix} written to file: {filepath}")
 
             elif self.context.output_mode == "mongo":
+                print(f"Writing content to MongoDB")
                 for content in contents:
                     parsed_content = json.loads(content)
                     if 'questions' in parsed_content:
                         for question in parsed_content['questions']:
-                            if 'skill_id' in question:
-                                self.context.store_output_to_mongo(json.dumps([question]), question['skill_id'])
+                            self.context.store_output_to_mongo(json.dumps([question]))
 
             else:
                 raise ValueError(f"Invalid output_mode: {self.context.output_mode}")
@@ -795,7 +772,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
 
 def main():
     # Choose which workflow to run
-    workflow_type = "enhance"  # or "generate"
+    workflow_type = "generate"  # or "generate"
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()
