@@ -414,19 +414,31 @@ class GlobalContext:
                 # Try to parse as JSON to validate
                 parsed_json = json.loads(ai_response_content)
                 
-                # Validate the structure
-                if not isinstance(parsed_json, dict):
-                    print("Error: Response is not a JSON object")
+                # Handle both single question object and array of questions
+                questions_to_process = []
+                if isinstance(parsed_json, dict):
+                    if 'questions' in parsed_json:
+                        questions_to_process = parsed_json['questions']
+                    else:
+                        # Single question object
+                        questions_to_process = [parsed_json]
+                elif isinstance(parsed_json, list):
+                    # Array of questions
+                    questions_to_process = parsed_json
+                else:
+                    print("Error: Response is neither a JSON object nor an array")
                     return None
-                
-                if 'questions' not in parsed_json:
-                    print("Error: Response missing 'questions' key")
-                    return None
-                
-                if not isinstance(parsed_json['questions'], list):
-                    print("Error: 'questions' is not a list")
-                    return None
-                #print(f"******ai_response_content: {ai_response_content}")
+
+                # Process each question
+                for question in questions_to_process:
+                    if isinstance(question, dict):
+                        question['created_at'] = datetime.utcnow()
+                        questions_collection = self.mongo_db[self.mongo_collection_name]
+                        questions_collection.insert_one(question)
+                        print(f"Inserted question {question['question']} in collection:  {self.mongo_collection_name}")
+                    else:
+                        print(f"Skipped non-dictionary item: {question}")
+
                 return ai_response_content
 
             except json.JSONDecodeError as e:
@@ -454,17 +466,27 @@ class GlobalContext:
             try:
                 parsed_json = json.loads(content)
                 questions_collection = self.mongo_db[self.mongo_collection_name]
-                if 'questions' in parsed_json and isinstance(parsed_json['questions'], list):
-                    for question in parsed_json['questions']:
-                        if isinstance(question, dict):
-                            question['skill_id'] = skill_id
-                            question['created_at'] = datetime.utcnow()
-                            print(f"Inserting question: {question['question']}")
-                            questions_collection.insert_one(question)
-                        else:
-                            print(f"Skipped non-dictionary item: {question}")
-                else:
-                    print(f"Unexpected JSON structure: {parsed_json}")
+                
+                # Handle both array of questions and single question object
+                questions_to_process = []
+                if isinstance(parsed_json, list):
+                    questions_to_process = parsed_json
+                elif isinstance(parsed_json, dict):
+                    if 'questions' in parsed_json:
+                        questions_to_process = parsed_json['questions']
+                    else:
+                        questions_to_process = [parsed_json]
+                
+                for question in questions_to_process:
+                    if isinstance(question, dict):
+                        question['created_at'] = datetime.utcnow()
+                        print(f"Inserting question: {question['question']} in collection: {self.mongo_collection_name}")
+                        questions_collection.insert_one(question)
+                        print(f"Inserted question: {question['question']} in collection: {self.mongo_collection_name}")
+
+                    else:
+                        print(f"Skipped non-dictionary item: {question}")
+                        
             except json.JSONDecodeError as e:
                 print(f"JSON decoding failed: {e}")
                 print("Raw API response that caused the error:\n", content)
