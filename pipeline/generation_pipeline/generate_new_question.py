@@ -750,6 +750,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             for question in questions:
                 enhanced_content = self.enhance_question(question)
                 if enhanced_content:
+                    print(f"***Enhanced content: {enhanced_content}")
                     enhanced_contents.append(enhanced_content)
                     print(f"Successfully enhanced question: {question['question']}")
                 else:
