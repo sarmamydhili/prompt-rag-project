@@ -200,7 +200,7 @@ class GlobalContext:
                     for objective in details['objectives']:
                         if 'description' in objective:
                             learning_objectives.append(objective['description'])
-                            print(f"Added suggested skill: {objective['description']}")
+                            #print(f"Added suggested skill: {objective['description']}")
             
             print(f"\nUsing skill as topic: {skill}")
             return learning_objectives, skill
@@ -252,57 +252,6 @@ class GlobalContext:
         print(f"\nTotal skill-topic parameters created: {len(skill_topic_params)}")
         print("="*50 + "\n")
         return skill_topic_params
-
-    def calculate_question_similarity(self, question1: Dict, question2: Dict) -> float:
-        """
-        Calculate similarity score between two questions based on multiple factors
-        Args:
-            question1: First question dictionary
-            question2: Second question dictionary
-        Returns:
-            Similarity score between 0 and 1
-        """
-        # Initialize weights for different similarity components
-        weights = {
-            'topic': 0.3,
-            'skill': 0.3,
-            'difficulty': 0.2,
-            'structure': 0.2
-        }
-        
-        # Calculate topic similarity
-        topic_sim = 1.0 if question1.get('topic') == question2.get('topic') else 0.0
-        
-        # Calculate skill similarity
-        skill_sim = 1.0 if question1.get('skill') == question2.get('skill') else 0.0
-        
-        # Calculate difficulty similarity
-        diff1 = question1.get('difficulty', 'medium')
-        diff2 = question2.get('difficulty', 'medium')
-        difficulty_map = {'easy': 0, 'medium': 1, 'hard': 2}
-        diff_sim = 1.0 - abs(difficulty_map.get(diff1, 1) - difficulty_map.get(diff2, 1)) / 2.0
-        
-        # Calculate structure similarity
-        struct_sim = 0.0
-        if 'multiple_choices' in question1 and 'multiple_choices' in question2:
-            # Compare number of choices
-            struct_sim += 0.5 * (1.0 if len(question1['multiple_choices']) == len(question2['multiple_choices']) else 0.0)
-            # Compare question length
-            len1 = len(question1.get('question_text', ''))
-            len2 = len(question2.get('question_text', ''))
-            struct_sim += 0.5 * (1.0 - abs(len1 - len2) / max(len1, len2))
-        
-        # Calculate weighted similarity
-        total_sim = (
-            weights['topic'] * topic_sim +
-            weights['skill'] * skill_sim +
-            weights['difficulty'] * diff_sim +
-            weights['structure'] * struct_sim
-        )
-        
-        return total_sim
-
-    
 
     def prepare_llm_parameters(self, skill_topic_params, sample_questions):
         """
@@ -741,7 +690,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             
             # Get questions for specific skill
             pskill = "Limits and Continuity"
-            questions = self.context.mongo_operations.get_questions_by_skill(skill=pskill, limit=2)
+            questions = self.context.mongo_operations.get_questions_by_skill(skill=pskill, limit=None)
             print(f"Found {len(questions)} questions for skill: {pskill}")
             
             # Process each question
@@ -749,7 +698,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             for question in questions:
                 enhanced_content = self.enhance_question(question)
                 if enhanced_content:
-                    print(f"***Enhanced content: {enhanced_content}")
+                    #print(f"***Enhanced content: {enhanced_content}")
                     enhanced_contents.append(enhanced_content)
                     print(f"Successfully enhanced question: {question['question']}")
                 else:

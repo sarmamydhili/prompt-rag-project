@@ -42,7 +42,7 @@ class PromptBuilder:
     def _format_learning_objectives(self, learning_objectives):
         """Format learning objectives into a string"""
         if learning_objectives:
-            print(f"Learning objectives: {learning_objectives}")
+            #print(f"Learning objectives: {learning_objectives}")
             return "### Learning Objectives:\n" + "\n".join([
                 f"{i+1}. {objective}"
                 for i, objective in enumerate(learning_objectives)
@@ -71,25 +71,20 @@ class PromptBuilder:
                 'num_questions': parameters.get('num_questions', 1),
                 'sample_questions_section': parameters.get('sample_questions_section', '')
             }
-            print('I am here',1)
-            print('learning_objectives',base_params['learning_objectives'])
+            #print('learning_objectives',base_params['learning_objectives'])
             # Step 2: Format learning objectives
             learning_objectives_str = self._format_learning_objectives(base_params['learning_objectives'])
-            print('I am here',2) 
             # Step 3: Create final parameters dictionary
             final_params = {
                 **base_params,
                 'learning_objectives': learning_objectives_str
             }
-            print('I am here',3)
             #print(f"Final params: {final_params}")
             # Step 4: Generate prompts
             system_prompt = self.system_prompt_template.format(**final_params)
-            print('I am here',4)
-            print(f"System prompt: {system_prompt}")
+            #print(f"System prompt: {system_prompt}")
             user_prompt = self.user_prompt_template.format(**final_params)
-            print('I am here',5)
-            print(f"User prompt: {user_prompt}")
+            #print(f"User prompt: {user_prompt}")
             return system_prompt, user_prompt
 
         except Exception as e:
