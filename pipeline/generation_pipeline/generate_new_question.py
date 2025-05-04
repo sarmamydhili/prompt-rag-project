@@ -549,24 +549,40 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             system_prompt_template_path=self.context.generation_system_prompt_path,
             user_prompt_template_path=self.context.generation_user_prompt_path
         )
+        # Initialize file for this run
+        self.output_file = None
+        self.all_questions = []
 
-    def get_prompts(self, parameters):
-        """Get prompts for question generation"""
-        try:
-            # Add generation-specific parameters
-            generation_params = {
-                **parameters,
-                'num_questions': getattr(self.context, 'num_questions', 1),
-                'prompt_type': getattr(self.context, 'prompt_type', 'Multiple Choice')
-            }
-            system_prompt, user_prompt = self.prompt_builder.create_prompts(generation_params)
-            if system_prompt is None or user_prompt is None:
-                print("Error: Could not create prompts.")
-                return None, None
-            return system_prompt, user_prompt
-        except Exception as e:
-            print(f"Error in get_prompts: {str(e)}")
-            return None, None
+    def initialize_output_file(self):
+        """Initialize the output file at the start of the run"""
+        if self.context.output_mode == "file":
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"generated_questions_{timestamp}.json"
+            os.makedirs("generated_questions", exist_ok=True)
+            self.output_file = os.path.join("generated_questions", filename)
+            # Initialize file with empty questions array
+            with open(self.output_file, 'w') as f:
+                json.dump({"questions": []}, f, indent=2)
+            print(f"Initialized output file: {self.output_file}")
+
+    def append_to_output_file(self, questions):
+        """Append new questions to the output file"""
+        if self.context.output_mode == "file" and self.output_file:
+            try:
+                # Read existing content
+                with open(self.output_file, 'r') as f:
+                    data = json.load(f)
+                
+                # Append new questions
+                data['questions'].extend(questions)
+                
+                # Write back to file
+                with open(self.output_file, 'w') as f:
+                    json.dump(data, f, indent=2)
+                
+                print(f"✅ Appended {len(questions)} questions to {self.output_file}")
+            except Exception as e:
+                print(f"❌ Error appending to file: {str(e)}")
 
     def load_sample_questions(self):
         sample_questions_section = ""
@@ -578,35 +594,87 @@ class QuestionGenerationWorkflow(BaseWorkflow):
 
     def run(self):
         try:
-            # Step 3: Resolve Skills
+            # Initialize output file if in file mode
+            if self.context.output_mode == "file":
+                self.initialize_output_file()
+
+            # Step 1: Get all skills data
             skills_data = self.context.resolve_skills_from_context()
             print(f"Skills data in run method: {skills_data}")
             if not skills_data:
                 raise ValueError("No skills data found for the given context")
-            
-            # Step 4: Get Skill Topic Parameters directly from context
-            skill_topic_params = self.context.get_skill_topic_parameters(skills_data)
-            print(f"Skill topic parameters: {skill_topic_params}")
 
-            # Step 4.1: Add Bloom's Taxonomy levels to each parameter set
-            for params in skill_topic_params:
-                params["bloom_levels"] = self.context.bloom_levels
-            print(f"Added Bloom's Taxonomy levels to parameters: {self.context.bloom_levels}")
-
-            # Step 5: Load Sample Questions
+            # Step 2: Load sample questions once
             sample_questions_section = self.load_sample_questions()
 
-            # Step 6: Generate Content
-            all_contents = generate_content_with_llm(self.context, skill_topic_params, sample_questions_section, self.llm_connections)
+            # Step 3: Outer Loop - Process each skill
+            for skill_data in skills_data:
+                print(f"\nProcessing skill: {skill_data['skill_name']}")
+                
+                # Get base parameters for this skill
+                skill_params = self.context.get_skill_topic_parameters([skill_data])[0]
+                
+                # Step 4: Inner Loop - Process each Bloom's level
+                for bloom_level in self.context.bloom_levels:
+                    print(f"Generating questions for Bloom's level: {bloom_level}")
+                    
+                    # Add current Bloom's level to parameters
+                    skill_params["bloom_levels"] = [bloom_level]
+                    
+                    # Generate questions for this skill and Bloom's level
+                    all_contents = generate_content_with_llm(
+                        self.context,
+                        [skill_params],  # Pass as list since function expects list
+                        sample_questions_section,
+                        self.llm_connections
+                    )
+                    
+                    # Process and write output for this batch
+                    if all_contents:
+                        print(f"Processing content for skill: {skill_data['skill_name']}, Bloom's level: {bloom_level}")
+                        self.process_and_write_content(all_contents)
+                        print(f"✅ Generated questions for skill: {skill_data['skill_name']}, Bloom's level: {bloom_level}")
+                    else:
+                        print(f"❌ Failed to generate questions for skill: {skill_data['skill_name']}, Bloom's level: {bloom_level}")
 
-            # Step 7: Write Content
-            print("Writing content...")
-            self.write_content(all_contents)
-
-            print("✅ Question Generation Completed.")
+            print("✅ Question Generation Completed for all skills and Bloom's levels")
 
         except Exception as e:
             print(f"❌ Error in main workflow: {str(e)}")
+            raise
+
+    def process_and_write_content(self, contents):
+        """Process and write content based on output mode"""
+        try:
+            if self.context.output_mode == "file":
+                # Process each content and append to file
+                for content in contents:
+                    try:
+                        parsed_content = json.loads(content)
+                        if 'questions' in parsed_content:
+                            self.append_to_output_file(parsed_content['questions'])
+                    except json.JSONDecodeError:
+                        print(f"Warning: Could not parse content as JSON: {content}")
+                        continue
+
+            elif self.context.output_mode == "mongo":
+                print(f"Writing content to MongoDB")
+                for content in contents:
+                    try:
+                        parsed_content = json.loads(content)
+                        if 'questions' in parsed_content:
+                            for question in parsed_content['questions']:
+                                self.context.store_output_to_mongo(json.dumps([question]))
+                    except json.JSONDecodeError:
+                        print(f"Warning: Could not parse content as JSON: {content}")
+                        continue
+                print("✅ Questions stored in MongoDB")
+
+            else:
+                raise ValueError(f"Invalid output_mode: {self.context.output_mode}")
+
+        except Exception as e:
+            print(f"❌ Error processing content: {str(e)}")
             raise
 
 
