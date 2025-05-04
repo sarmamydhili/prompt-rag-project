@@ -568,14 +568,6 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             print(f"Error in get_prompts: {str(e)}")
             return None, None
 
-    def resolve_skills(self):
-        print("Resolving skills...")
-        skills_data = self.context.resolve_skills_from_context()
-        print(f"Skills data: {skills_data}")
-        if not skills_data:
-            raise ValueError("No skills data found for the given context")
-        return skills_data
-
     def load_sample_questions(self):
         sample_questions_section = ""
         sample_questions_file = getattr(self.context, 'sample_questions_file', None)
@@ -587,8 +579,10 @@ class QuestionGenerationWorkflow(BaseWorkflow):
     def run(self):
         try:
             # Step 3: Resolve Skills
-            skills_data = self.resolve_skills()
+            skills_data = self.context.resolve_skills_from_context()
             print(f"Skills data in run method: {skills_data}")
+            if not skills_data:
+                raise ValueError("No skills data found for the given context")
             
             # Step 4: Get Skill Topic Parameters directly from context
             skill_topic_params = self.context.get_skill_topic_parameters(skills_data)
