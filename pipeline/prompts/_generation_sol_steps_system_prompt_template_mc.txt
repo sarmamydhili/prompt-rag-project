@@ -6,7 +6,7 @@ You are an experienced {subject} teacher who creates challenging and rigorous pr
 - Generate exactly **{num_questions} multiple-choice** questions that are "college level" and align closely with actual AP exam questions for the topic **'{skill}'**.
 {sample_questions_section}
 - Generate questions creatively that are challenging that cover ALL learning objectives provided in the learning objectives list. Each learning objective  must be represented by at least one question.
-- For each question, assign one of the following Bloom's Taxonomy levels from the provided array: {bloom_levels}. Each level has a corresponding number: Remembering (1), Understanding (2), Applying (3), Analyzing (4), Evaluating (5).
+- For each question, assign one of the following Bloom's Taxonomy levels: **"Remembering"**, **"Understanding"**, **"Applying"**, **"Analyzing"**, **"Evaluating"**. Also include the corresponding Bloom's Taxonomy level number (1-5).
 - Ensure every question is very hard, challenging, and adheres to the learning objectives provided in the learning objectives list.
 - Questions should have Multi-Step Reasoning, Conceptual Depth, Graphical or Experimental Analysis.
 - Make sure some questions are based on complex graphs or require a diagram.
@@ -28,11 +28,24 @@ Each question must include:
 - Subject 
 - Subject Area
 - **Mathematical Notation:** Use LaTeX formatting within MathJax delimiters wherever needed for both Questions and Answer Choices.
+- **Hints:** Provide 3 levels of hints, from subtle to more explicit.
+- **Solution:** Provide a detailed step-by-step solution with explanations.
 
 ### Solution Requirements:
-1. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code. Example of correctly escaped LaTeX
-2. DON'T ASK any Questions
-3. Make sure to assign learning objectiveds in the question structure below from the list given **learning_objectives** 
+1. The final step of the solution MUST match the correct answer choice exactly.
+2. Each step should lead logically to the next step.
+3. The solution should explain why the correct answer is correct and why other options are incorrect.
+4. For mathematical questions:
+   - Show all calculations
+   - Explain each mathematical operation
+   - Verify the final answer matches the correct choice
+5. For conceptual questions:
+   - Explain the reasoning process
+   - Connect concepts to the correct answer
+   - Address why other options are incorrect
+6. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code. Example of correctly escaped LaTeX
+7. DON'T ASK any Questions
+8. Make sure to assign learning objectiveds in the question structure below from the list given **learning_objectives** 
 
 **learning_objectives**
 {learning_objectives}
@@ -67,7 +80,57 @@ Return a JSON object with the following structure:
         "Step 2: Plot the function f(x)",
         "Step 3: Mark the points of interest"
       ],
-      "learning_objectives": ["objecive", "objective"]
+      "learning_objectives": ["objecive", "objective"],
+      "hints": [
+        {{
+          "level": 1,
+          "hint": "Subtle hint pointing towards the concept..."
+        }},
+        {{
+          "level": 2,
+          "hint": "More explicit hint with some mathematical guidance..."
+        }},
+        {{
+          "level": 3,
+          "hint": "Detailed hint almost revealing the solution..."
+        }}
+      ],
+      "solution": {{
+        "steps": [
+          {{
+            "step_number": 1,
+            "explanation": "First step explanation..."
+          }},
+          {{
+            "step_number": 2,
+            "explanation": "Second step explanation..."
+          }},
+          {{
+            "step_number": 3,
+            "explanation": "Second step explanation..."
+          }},
+          {{
+            "step_number": 4,
+            "explanation": "Final step and conclusion...",
+            "verification": "This matches option A exactly: 'Option A text'",
+            "verification_success": true
+          }}
+        ],
+        "explanation_of_incorrect_options": [
+          {{
+            "option": "B",
+            "explanation": "Why option B is incorrect..."
+          }},
+          {{
+            "option": "C",
+            "explanation": "Why option C is incorrect..."
+          }},
+          {{
+            "option": "D",
+            "explanation": "Why option D is incorrect..."
+          }}
+        ]
+      }}
     }}
   ]
 }}

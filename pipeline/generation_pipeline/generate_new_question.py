@@ -101,6 +101,11 @@ class GlobalContext:
             self.enhance_system_prompt_path = getattr(self, 'enhance_system_prompt_path', 'pipeline/prompts/enhance_system_prompt_template_mc.txt')
             self.enhance_user_prompt_path = getattr(self, 'enhance_user_prompt_path', 'pipeline/prompts/enhance_usr_prompt_template_mc.txt')
 
+            # Set Bloom's Taxonomy levels from config or use default
+            bloom_levels_str = getattr(self, 'bloom_levels', 'Remembering,Understanding,Applying,Analyzing,Evaluating')
+            self.bloom_levels = [level.strip() for level in bloom_levels_str.split(',')]
+            print(f"✓ Bloom's Taxonomy levels: {self.bloom_levels}")
+
         except FileNotFoundError as e:
             print(f"Warning: {str(e)}")
             raise
@@ -278,7 +283,8 @@ class GlobalContext:
                 'skill_id': params['skill_id'],
                 'skill': params['skill'],
                 'learning_objectives': params['learning_objectives'],
-                'num_questions': self.num_questions
+                'num_questions': self.num_questions,
+                'bloom_levels': params.get('bloom_levels', self.bloom_levels)  # Use from params or fallback to context
             }
             
             # Only add sample questions if they exist and are not empty
@@ -588,6 +594,11 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             skill_topic_params = self.context.get_skill_topic_parameters(skills_data)
             print(f"Skill topic parameters: {skill_topic_params}")
 
+            # Step 4.1: Add Bloom's Taxonomy levels to each parameter set
+            for params in skill_topic_params:
+                params["bloom_levels"] = self.context.bloom_levels
+            print(f"Added Bloom's Taxonomy levels to parameters: {self.context.bloom_levels}")
+
             # Step 5: Load Sample Questions
             sample_questions_section = self.load_sample_questions()
 
@@ -689,7 +700,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             print("Starting Question Enhancement Workflow...")
             
             # Get questions for specific skill
-            pskill = "Limits and Continuity"
+            pskill = "Infinite Sequences and Series"
             questions = self.context.mongo_operations.get_questions_by_skill(skill=pskill, limit=None)
             print(f"Found {len(questions)} questions for skill: {pskill}")
             
@@ -720,8 +731,13 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
 
 
 def main():
-    # Choose which workflow to run
-    workflow_type = "generate"  # or "generate"
+    # Initialize context to get workflow type
+    context = GlobalContext()
+    context.initialize()
+    
+    # Get workflow type from context
+    workflow_type = getattr(context, 'workflow_type', 'generate')  # Default to 'generate' if not specified
+    print(f"Running workflow type: {workflow_type}")
     
     if workflow_type == "generate":
         workflow = QuestionGenerationWorkflow()

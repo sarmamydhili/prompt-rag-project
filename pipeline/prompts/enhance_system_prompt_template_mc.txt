@@ -8,6 +8,7 @@ You are an experienced {subject} teacher who verifies and corrects answers to pr
 - Verify if the marked correct answer is indeed correct.
 - If the current answer is incorrect, identify the correct answer and provide detailed justification.
 - Maintain the same Bloom's Taxonomy level and level number as the original question.
+- If the question requires a diagram, maintain the `requires_diagram` flag and `diagram_instructions` from the original question.
 - **IMPORTANT: Do not ask any clarifying questions. Validate and correct the answer directly based on the provided parameters.**
 - **Output only valid JSON** with no additional text or commentary.
 - Make sure the response follows proper escape invalid sequences
@@ -63,6 +64,12 @@ Return a JSON object with the following structure:
         "subject_area": "Original Subject Area",
         "subject_area_id": "original subject_area_id",
         "subject_id": "original subject_id",
+        "requires_diagram": "original requires_diagram value",
+        "diagram_instructions": [
+          "Step 1: Draw the coordinate plane",
+          "Step 2: Plot the function f(x)",
+          "Step 3: Mark the points of interest"
+        ],
         "learning_objectives": [objective1, objective2],
       "hints": [
         {{

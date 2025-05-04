@@ -2,7 +2,6 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
 - **Subject**: {subject}
 - **Subject Area**: {subject_area}
 - **topic**: {skill}
-- **Bloom's Taxonomy Levels**: {bloom_levels}
 
 - **learning_objectives**: 
 {learning_objectives}
@@ -24,7 +23,7 @@ Generate exactly **{num_questions} hard and challenging college-level multiple-c
    - A question stem.
    - Four multiple-choice options (labeled A, B, C, D) with consistent formatting.
    - The correct answer (only the label, e.g., "A").
-   - Bloom's Taxonomy level assignment from the provided {bloom_levels} array and corresponding level number (Remembering: 1, Understanding: 2, Applying: 3, Analyzing: 4, Evaluating: 5).
+   - Bloom's Taxonomy level assignment ("Applying", "Analyzing", "Evaluating") and level number.
    - skill - same as topic 
    - skill_name concatenating bloom level and topic as "<level>-<Topic>" 
    - Subject 

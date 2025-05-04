@@ -69,7 +69,8 @@ class PromptBuilder:
                 'task_name': parameters.get('task_name', ''),
                 'learning_objectives': parameters.get('learning_objectives', []),
                 'num_questions': parameters.get('num_questions', 1),
-                'sample_questions_section': parameters.get('sample_questions_section', '')
+                'sample_questions_section': parameters.get('sample_questions_section', ''),
+                'bloom_levels': parameters.get('bloom_levels', [])
             }
             #print('learning_objectives',base_params['learning_objectives'])
             # Step 2: Format learning objectives
@@ -116,7 +117,8 @@ class PromptBuilder:
                 'level_num': parameters.get('level_num', 0),
                 'requires_diagram': parameters.get('requires_diagram', False),
                 'learning_objectives': parameters.get('learning_objectives', []),
-                'skill_topic': parameters.get('skill_topic', '')
+                'skill_topic': parameters.get('skill_topic', ''),
+                'bloom_levels': parameters.get('bloom_levels', [])
             }
 
             # Step 2: Generate prompts
