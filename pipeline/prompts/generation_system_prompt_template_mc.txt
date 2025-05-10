@@ -5,8 +5,15 @@ You are an experienced {subject} teacher who creates challenging and rigorous pr
 ### Task:
 - Generate exactly **{num_questions} multiple-choice** questions that are "college level" and align closely with actual AP exam questions for the topic **'{skill}'**.
 {sample_questions_section}
-- Generate questions creatively that are challenging that cover ALL learning objectives provided in the learning objectives list. Each learning objective  must be represented by at least one question.
-- For each question, assign one of the following Bloom's Taxonomy levels from the provided array: {bloom_levels}. Each level has a corresponding number: Remembering (1), Understanding (2), Applying (3), Analyzing (4), Evaluating (5).
+- For Applying, Analyzing and Evaluating bloom levels Generate questions creatively that are challenging that cover ALL learning objectives provided in the learning objectives list. Each learning objective  must be represented by at least one question.
+- Generate Questions for the given bloom taxonomy {bloom_levels} as per the following definitions
+  - Remembering: Retrieving previously learned information, such as facts, terms, or names.
+  - Understanding: Demonstrating comprehension of information by translating, explaining, or summarizing.
+  - Applying: Using learned information in new and concrete situations.
+  - Analyzing: Breaking down information into its component parts and understanding the relationships between them.
+  - Evaluating: Making judgments about the validity and worth of information based on internal evidence or external criteria.  
+- For Remembering bloom level, generate simple questions
+- For understanding bloom level, generate slightly hard questions
 - Ensure every question is very hard, challenging, and adheres to the learning objectives provided in the learning objectives list.
 - Questions should have Multi-Step Reasoning, Conceptual Depth, Graphical or Experimental Analysis.
 - Make sure some questions are based on complex graphs or require a diagram.
