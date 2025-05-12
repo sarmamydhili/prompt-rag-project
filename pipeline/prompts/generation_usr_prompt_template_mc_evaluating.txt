@@ -1,0 +1,97 @@
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the EVALUATING level (Level 5) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Evaluating"
+- "level_num": 5
+- "skill_name": "Evaluating-<topic>"
+
+Generate exactly **{num_questions} AP exam-level, college-level evaluation-focused multiple-choice questions** for {subject} using the following parameters:
+- **Subject**: {subject}
+- **Subject Area**: {subject_area}
+- **topic**: {skill}
+- **Bloom's Taxonomy Level**: Evaluating (Level 5)
+- **Difficulty Level**: AP Exam Level
+- **Question Type**: Complex, Multi-concept Word Problems
+
+- **learning_objectives**: 
+{learning_objectives}
+
+{sample_questions_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on creating AP exam-level questions that test advanced evaluation and critical judgment skills.
+2. **CRITICAL: Generate questions that:**
+   - Cover ALL learning objectives in the learning objectives above
+   - Each skill must be represented by at least one question
+   - MUST integrate at least 2-3 different concepts per question
+   - MUST be at AP exam level difficulty
+   - MUST include complex, multi-step word problems
+   - **Approximately 30-40% of questions MUST require diagrams**
+   - For diagram questions, ensure diagrams are essential for solving the problem
+3. Questions MUST:
+   - Require critical evaluation of multiple interconnected concepts
+   - Test ability to make and justify judgments
+   - Include sophisticated decision-making scenarios
+   - Be appropriate for college-level and AP exam students
+   - Include real-world applications and scenarios
+   - Require critical evaluation and judgment
+   - For diagram questions:
+     * Include evaluation scenarios
+     * Require critical analysis of the diagram
+     * Use appropriate diagram types (comparative analyses, decision trees, experimental results)
+4. Question Distribution:
+   - Total questions: {num_questions}
+   - Questions with diagrams: Approximately 30-40% (round to nearest whole number)
+   - Questions without diagrams: Remaining percentage
+   - Ensure even distribution of diagram types
+4. Ensure each question:
+   - Tests ability to evaluate in complex scenarios
+   - Includes integration of multiple evaluation criteria
+   - Requires sophisticated judgment in advanced contexts
+   - Covers all major evaluative aspects within {learning_objectives}
+   - Is challenging and requires multiple steps to solve
+   - Has equally plausible answer choices
+5. Each question MUST include:
+   - A complex question stem requiring evaluation of multiple concepts
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "A")
+   - "level": "Evaluating" (MUST be exactly this)
+   - "level_num": 5 (MUST be exactly this)
+   - skill - same as topic
+   - "skill_name": "Evaluating-<Topic>" (MUST start with "Evaluating-")
+   - Subject
+   - Subject Area
+   - Difficulty level: AP Exam Level
+   - Integration of multiple concepts
+   - Complex word problem structure
+   - Diagram requirements:
+     * "requires_diagram": boolean (true if question needs a diagram)
+     * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
+6. For questions requiring diagrams:
+   - Set "requires_diagram" to true
+   - Provide detailed "diagram_gen_steps" as an array of strings including:
+     * Type of diagram (e.g., "graph", "flowchart", "geometric figure")
+     * Required elements and their properties
+     * Relationships between elements
+     * Scale and dimensions
+     * Labels and annotations
+     * Color coding if needed
+     * Any specific mathematical or evaluation requirements
+     * Steps to show the evaluation criteria and process
+     * Comparison elements if needed
+   - Ensure diagram steps are clear and specific enough for generation
+   - Include all necessary mathematical notation and labels
+   - Specify any special requirements for visualization
+   - Include steps to show the evaluation process and criteria
+   - Add comparison elements if the question requires comparing alternatives
+7. **CRITICAL: Each question MUST be:**
+   - At AP exam level difficulty
+   - A complex word problem
+   - Integrate multiple concepts
+   - Require multiple steps to solve
+   - Include real-world applications
+   - Challenge students' evaluation skills
+   - Have appropriate diagram requirements if needed

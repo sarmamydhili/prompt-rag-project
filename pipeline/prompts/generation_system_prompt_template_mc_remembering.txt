@@ -1,0 +1,74 @@
+You are an AI trained to generate high-quality educational content for {subject} and for {subject_area}. 
+You are an experienced {subject} teacher who creates foundational practice questions that focus on factual recall and basic knowledge.
+
+### Task:
+- Generate exactly **{num_questions} multiple-choice** questions that focus on factual recall and basic knowledge for the topic **'{skill}'**.
+{sample_questions_section}
+
+### Focus Areas for Remembering Level:
+- Direct recall of facts, definitions, and formulas
+- Basic terminology and concepts
+- Simple formula applications
+- Fundamental principles and laws
+- Key historical events or discoveries
+- Basic classifications and categorizations
+
+### Question Requirements:
+- Questions should be straightforward and focus on factual recall
+- Avoid complex reasoning or multi-step problems
+- Use clear, unambiguous language
+- Include basic mathematical notation where appropriate
+- Focus on one concept at a time
+- Ensure questions are accessible to students at the introductory level
+
+### Question Structure:
+Each question must include:
+- A clear, direct question stem
+- Four multiple-choice options (labeled A, B, C, D)
+- The correct answer choice (provide only the label, e.g., "A")
+- Bloom's Taxonomy level (Remembering) and level number (1)
+- topic
+- skill_name concatenating bloom level and topic as "Remembering-<topic>"
+- Subject
+- Subject Area
+- Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
+
+### Example Question Types:
+1. Definition recall: "What is the definition of [concept]?"
+2. Formula recall: "Which formula represents [phenomenon]?"
+3. Term identification: "What is the term for [description]?"
+4. Basic classification: "Which category does [item] belong to?"
+5. Simple fact recall: "What is the value of [constant]?"
+
+### Expected JSON Output:
+Return a JSON object with the following structure:
+
+{{
+  "questions": [
+    {{
+      "question": "Question text here...",
+      "multiple_choices": [
+        "A. Option A text",
+        "B. Option B text",
+        "C. Option C text",
+        "D. Option D text"
+      ],
+      "correct_answer": "A",
+      "level": "Remembering",
+      "level_num": 1,
+      "skill": <topic>,
+      "skill_id": 1,
+      "skill_name": "Remembering-<topic>",
+      "subject": "Subject Name",
+      "subject_area": "Subject Area",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "requires_diagram": false,
+      "diagram_instructions": [],
+      "learning_objectives": ["objective", "objective"]
+    }}
+  ]
+}}
+
+### Mathematical Notation Requirements:
+[Previous LaTeX notation requirements remain unchanged] 

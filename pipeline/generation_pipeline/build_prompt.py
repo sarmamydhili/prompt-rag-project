@@ -3,22 +3,30 @@ import os
 
 class PromptBuilder:
     def __init__(self, system_prompt_template_path, user_prompt_template_path):
-        # Load prompt templates
-        print(f"Loading prompt templates from {system_prompt_template_path} and {user_prompt_template_path}")   
-        self.system_prompt_template = self._load_template(system_prompt_template_path)
-        self.user_prompt_template = self._load_template(user_prompt_template_path)
-
-    def _load_template(self, filename):
-        """Load a prompt template from file"""
-        print(f"in _load_template Loading template from {filename}")
+        print(f"\nDEBUG: Initializing PromptBuilder with:")
+        print(f"DEBUG: System template path: {system_prompt_template_path}")
+        print(f"DEBUG: User template path: {user_prompt_template_path}")
+        
         try:
-            # Ensure filename does not include a path
-            filename = os.path.basename(filename)
-            template_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'prompts', filename)
+            with open(system_prompt_template_path, 'r') as f:
+                self.system_prompt_template = f.read()
+                print(f"DEBUG: Successfully loaded system template from {system_prompt_template_path}")
+            with open(user_prompt_template_path, 'r') as f:
+                self.user_prompt_template = f.read()
+                print(f"DEBUG: Successfully loaded user template from {user_prompt_template_path}")
+        except Exception as e:
+            print(f"DEBUG: Error loading templates: {e}")
+            raise
+
+    def _load_template(self, template_path):
+        """Load a prompt template from file"""
+        print(f"Loading template from {template_path}")
+        try:
+            # Use the full path provided in the configuration
             with open(template_path, 'r') as f:
                 return f.read().strip()
         except Exception as e:
-            print(f"Error loading template {filename}: {e}")
+            print(f"Error loading template {template_path}: {e}")
             return None
 
     #def _load_sample_questions(self, sample_questions_file):
@@ -58,6 +66,9 @@ class PromptBuilder:
             Tuple of (system_prompt, user_prompt)
         """
         try:
+            print(f"\nDEBUG: Creating prompts with parameters:")
+            print(f"DEBUG: Bloom's levels in parameters: {parameters.get('bloom_levels', [])}")
+            
             # Step 1: Prepare base parameters
             base_params = {
                 'subject': parameters.get('subject', ''),
@@ -72,24 +83,30 @@ class PromptBuilder:
                 'sample_questions_section': parameters.get('sample_questions_section', ''),
                 'bloom_levels': parameters.get('bloom_levels', [])
             }
-            #print('learning_objectives',base_params['learning_objectives'])
+            print(f"DEBUG: Base parameters prepared: {base_params}")
+            
             # Step 2: Format learning objectives
             learning_objectives_str = self._format_learning_objectives(base_params['learning_objectives'])
+            
             # Step 3: Create final parameters dictionary
             final_params = {
                 **base_params,
                 'learning_objectives': learning_objectives_str
             }
-            #print(f"Final params: {final_params}")
+            print(f"DEBUG: Final parameters for template formatting: {final_params}")
+            
             # Step 4: Generate prompts
             system_prompt = self.system_prompt_template.format(**final_params)
-            #print(f"System prompt: {system_prompt}")
             user_prompt = self.user_prompt_template.format(**final_params)
-            #print(f"User prompt: {user_prompt}")
+            
+            print(f"DEBUG: Successfully created prompts")
+            print(f"DEBUG: System prompt starts with: {system_prompt[:100]}...")
+            print(f"DEBUG: User prompt starts with: {user_prompt[:100]}...")
+            
             return system_prompt, user_prompt
 
         except Exception as e:
-            print(f"Error creating prompts: {e}")
+            print(f"DEBUG: Error creating prompts: {e}")
             return None, None
 
     def create_enhance_prompts(self, parameters):

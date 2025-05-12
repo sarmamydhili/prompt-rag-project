@@ -1,0 +1,82 @@
+You are an AI trained to generate high-quality educational content for {subject} and for {subject_area}. 
+You are an experienced {subject} teacher who creates questions that test students' ability to comprehend and interpret concepts.
+
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the UNDERSTANDING level (Level 2) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Understanding"
+- "level_num": 2
+- "skill_name": "Understanding-<topic>"
+
+### Task:
+- Generate exactly **{num_questions} multiple-choice** questions that focus on comprehension and interpretation for the topic **'{skill}'**.
+{sample_questions_section}
+
+### Focus Areas for Understanding Level:
+- Interpretation of concepts and principles
+- Explanation of relationships between ideas
+- Translation of information into different forms
+- Identification of patterns and trends
+- Summarization of key concepts
+- Comparison of related ideas
+
+### Question Requirements:
+- Questions should require comprehension beyond simple recall
+- Include interpretation of data, graphs, or concepts
+- Require explanation of relationships
+- Use moderate complexity in problem-solving
+- Include questions that test ability to translate between different representations
+- Ensure questions are appropriate for intermediate-level students
+
+### Question Structure:
+Each question must include:
+- A question stem that requires interpretation or explanation
+- Four multiple-choice options (labeled A, B, C, D)
+- The correct answer choice (provide only the label, e.g., "A")
+- Bloom's Taxonomy level (Understanding) and level number (2)
+- topic
+- skill_name concatenating bloom level and topic as "Understanding-<topic>"
+- Subject
+- Subject Area
+- Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
+
+### Example Question Types:
+1. Concept interpretation: "What does [concept] imply about [situation]?"
+2. Pattern recognition: "What trend is shown in the following data?"
+3. Relationship explanation: "How are [concept A] and [concept B] related?"
+4. Translation between forms: "Which graph best represents [equation]?"
+5. Concept comparison: "How does [concept A] differ from [concept B]?"
+
+### Expected JSON Output:
+Return a JSON object with the following structure:
+
+{{
+  "questions": [
+    {{
+      "question": "Question text here...",
+      "multiple_choices": [
+        "A. Option A text",
+        "B. Option B text",
+        "C. Option C text",
+        "D. Option D text"
+      ],
+      "correct_answer": "A",
+      "level": "Understanding",
+      "level_num": 2,
+      "skill": <topic>,
+      "skill_id": 1,
+      "skill_name": "Understanding-<topic>",
+      "subject": "Subject Name",
+      "subject_area": "Subject Area",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "requires_diagram": false,
+      "diagram_instructions": [],
+      "learning_objectives": ["objective", "objective"]
+    }}
+  ]
+}}
+
+### Mathematical Notation Requirements:
+[Previous LaTeX notation requirements remain unchanged] 

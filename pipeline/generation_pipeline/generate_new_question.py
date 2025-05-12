@@ -40,7 +40,6 @@ class GlobalContext:
         self.mongo_db = None
         self.chroma_client = None
         self.chroma_collection = None
-        self.prompt_builder = None
         self.mongo_operations = None
         self.sql_operations = None
 
@@ -48,6 +47,30 @@ class GlobalContext:
         self.mongo_questions_collection = None  # For reading questions
         self.mongo_output_collection_name = None  # For writing enhanced/generated questions
         self.chroma_collection_name = None
+
+        # Add new attributes for Bloom's level specific prompts
+        self.bloom_prompt_paths = {
+            'Remembering': {
+                'system': None,
+                'user': None
+            },
+            'Understanding': {
+                'system': None,
+                'user': None
+            },
+            'Applying': {
+                'system': None,
+                'user': None
+            },
+            'Analyzing': {
+                'system': None,
+                'user': None
+            },
+            'Evaluating': {
+                'system': None,
+                'user': None
+            }
+        }
 
         # Load application configurations from JSON
         self._load_app_config()
@@ -95,11 +118,16 @@ class GlobalContext:
             # Convert temperature from string to float
             self.temperature = float(getattr(self, 'temperature', '0.2'))
 
-            # Set prompt paths
-            self.generation_system_prompt_path = getattr(self, 'generation_system_prompt_path', 'pipeline/prompts/generation_system_prompt_template_mc.txt')
-            self.generation_user_prompt_path = getattr(self, 'generation_user_prompt_path', 'pipeline/prompts/generation_usr_prompt_template_mc.txt')
-            self.enhance_system_prompt_path = getattr(self, 'enhance_system_prompt_path', 'pipeline/prompts/enhance_system_prompt_template_mc.txt')
-            self.enhance_user_prompt_path = getattr(self, 'enhance_user_prompt_path', 'pipeline/prompts/enhance_usr_prompt_template_mc.txt')
+            # Load Bloom's level specific prompt paths
+            if 'bloom_prompts' in config:
+                for level in ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating']:
+                    system_key = f'{level.lower()}_system_prompt_path'
+                    user_key = f'{level.lower()}_user_prompt_path'
+                    
+                    if system_key in config['bloom_prompts']:
+                        self.bloom_prompt_paths[level]['system'] = config['bloom_prompts'][system_key]
+                    if user_key in config['bloom_prompts']:
+                        self.bloom_prompt_paths[level]['user'] = config['bloom_prompts'][user_key]
 
             # Set Bloom's Taxonomy levels from config or use default
             bloom_levels_str = getattr(self, 'bloom_levels', 'Remembering,Understanding,Applying,Analyzing,Evaluating')
@@ -122,12 +150,6 @@ class GlobalContext:
         self.mongo_operations = MongoOperations()
         self.sql_operations = SQLOperations()
         
-        # Initialize services
-        self.prompt_builder = PromptBuilder(
-            system_prompt_template_path=self.generation_system_prompt_path,
-            user_prompt_template_path=self.generation_user_prompt_path
-        )
-
         # Validate required properties
         if not hasattr(self, 'task_name') and not hasattr(self, 'skill_ids'):
             raise ValueError("Either task_name or skill_ids must be provided in task_config.json")
@@ -308,15 +330,25 @@ class GlobalContext:
 
     def get_prompts(self, parameters):
         """
-        Get system and user prompts from prompt builder
+        Get system and user prompts using the provided prompt builder
         Args:
             parameters (dict): Parameters for prompt generation
         Returns:
             tuple: (system_prompt, user_prompt) or (None, None) if failed
         """
         try:
-            # Get prompts from prompt builder
-            system_prompt, user_prompt = self.prompt_builder.create_prompts(parameters)
+            # Get the current Bloom's level from parameters
+            bloom_level = parameters.get('bloom_levels', [self.bloom_levels[0]])[0]
+            system_path, user_path = self.get_prompt_paths_for_bloom_level(bloom_level)
+            
+            # Create a temporary prompt builder for this request
+            prompt_builder = PromptBuilder(
+                system_prompt_template_path=system_path,
+                user_prompt_template_path=user_path
+            )
+            
+            # Get prompts from the temporary prompt builder
+            system_prompt, user_prompt = prompt_builder.create_prompts(parameters)
             if system_prompt is None or user_prompt is None:
                 print("Error: Could not create prompts.")
                 return None, None
@@ -446,14 +478,48 @@ class GlobalContext:
             print(f"Error loading sample questions from {sample_questions_file}: {e}")
             return ""
 
+    def get_prompt_paths_for_bloom_level(self, bloom_level):
+        """
+        Get the appropriate prompt paths for a given Bloom's level
+        Args:
+            bloom_level (str): The Bloom's taxonomy level
+        Returns:
+            tuple: (system_prompt_path, user_prompt_path)
+        Raises:
+            ValueError: If the Bloom's level is not found in the configuration
+        """
+        print(f"\nDEBUG: Getting prompt paths for Bloom's level: {bloom_level}")
+        print(f"DEBUG: Available bloom_prompt_paths: {self.bloom_prompt_paths}")
+        
+        if bloom_level in self.bloom_prompt_paths:
+            system_path = self.bloom_prompt_paths[bloom_level]['system']
+            user_path = self.bloom_prompt_paths[bloom_level]['user']
+            print(f"DEBUG: Found paths for {bloom_level}:")
+            print(f"DEBUG: System path: {system_path}")
+            print(f"DEBUG: User path: {user_path}")
+            if system_path and user_path:
+                return system_path, user_path
+            else:
+                print(f"DEBUG: Warning - One or both paths are None for {bloom_level}")
+        
+        raise ValueError(f"No prompt paths found for Bloom's level: {bloom_level}")
 
-def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections):
+
+def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections, prompt_builder=None):
     """
     Prepares LLM parameters and generates content using the LLM.
+    Args:
+        context: The global context
+        skill_topic_params: Parameters for the skills
+        sample_questions_section: Sample questions to include
+        llm_connections: LLM connection handler
+        prompt_builder: The prompt builder to use (required)
     """
+    if not prompt_builder:
+        raise ValueError("prompt_builder is required for generate_content_with_llm")
+        
     print("Preparing LLM parameters...")
     llm_prompt_parameters_list = context.prepare_llm_parameters(skill_topic_params, [])
-    #print(f"LLM prompt parameters list: {llm_prompt_parameters_list}")
     
     print("Generating content...")
     all_contents = []
@@ -461,17 +527,18 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
         # Add sample questions section to parameters
         params['parameters']['sample_questions_section'] = sample_questions_section
         print(f"Sample questions section: {sample_questions_section}")
-        # Get prompts
-        system_prompt, user_prompt = context.get_prompts(params['parameters'])
+        
+        # Get prompts using the provided prompt builder
+        system_prompt, user_prompt = prompt_builder.create_prompts(params['parameters'])
         if system_prompt is None or user_prompt is None:
             print(f"Failed to get prompts for skill: {params['skill']}")
             continue
-        #print(f"System prompt: {system_prompt} \n\n User prompt: {user_prompt}")
+        print(f"**System prompt: {system_prompt} \n\n **User prompt: {user_prompt}")
+        
         # Generate content
         content = context.generate_content_from_llm(system_prompt, user_prompt, llm_connections)
         if content:
             all_contents.append(content)
-        #print(f"******Content: {content}")    
     return all_contents
 
 class BaseWorkflow:
@@ -544,12 +611,13 @@ class BaseWorkflow:
 class QuestionGenerationWorkflow(BaseWorkflow):
     def __init__(self):
         super().__init__()
-        # Initialize services specific to generation workflow
+        # Initialize prompt builder with first Bloom's level (will be updated per level)
+        first_level = self.context.bloom_levels[0] if self.context.bloom_levels else 'Remembering'
+        system_path, user_path = self.context.get_prompt_paths_for_bloom_level(first_level)
         self.prompt_builder = PromptBuilder(
-            system_prompt_template_path=self.context.generation_system_prompt_path,
-            user_prompt_template_path=self.context.generation_user_prompt_path
+            system_prompt_template_path=system_path,
+            user_prompt_template_path=user_path
         )
-        # Initialize file for this run
         self.output_file = None
         self.all_questions = []
 
@@ -615,18 +683,31 @@ class QuestionGenerationWorkflow(BaseWorkflow):
                 skill_params = self.context.get_skill_topic_parameters([skill_data])[0]
                 
                 # Step 4: Inner Loop - Process each Bloom's level
+                print(f"\nDEBUG: Available Bloom's levels: {self.context.bloom_levels}")
                 for bloom_level in self.context.bloom_levels:
-                    print(f"Generating questions for Bloom's level: {bloom_level}")
+                    print(f"\nDEBUG: Starting generation for Bloom's level: {bloom_level}")
+                    
+                    # Update prompt builder with Bloom's level specific prompts
+                    system_path, user_path = self.context.get_prompt_paths_for_bloom_level(bloom_level)
+                    print(f"DEBUG: Creating new PromptBuilder with paths:")
+                    print(f"DEBUG: System path: {system_path}")
+                    print(f"DEBUG: User path: {user_path}")
+                    
+                    self.prompt_builder = PromptBuilder(
+                        system_prompt_template_path=system_path,
+                        user_prompt_template_path=user_path
+                    )
                     
                     # Add current Bloom's level to parameters
                     skill_params["bloom_levels"] = [bloom_level]
                     
-                    # Generate questions for this skill and Bloom's level
+                    # Generate questions for this skill and Bloom's level, passing the prompt builder
                     all_contents = generate_content_with_llm(
                         self.context,
-                        [skill_params],  # Pass as list since function expects list
+                        [skill_params],
                         sample_questions_section,
-                        self.llm_connections
+                        self.llm_connections,
+                        prompt_builder=self.prompt_builder  # Pass the prompt builder
                     )
                     
                     # Process and write output for this batch
@@ -683,10 +764,12 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
         super().__init__()
         self.context = GlobalContext()
         self.context.initialize()
-        # Initialize prompt builder with enhancement templates
+        # Initialize prompt builder with first Bloom's level (will be updated per level)
+        first_level = self.context.bloom_levels[0] if self.context.bloom_levels else 'Remembering'
+        system_path, user_path = self.context.get_prompt_paths_for_bloom_level(first_level)
         self.prompt_builder = PromptBuilder(
-            system_prompt_template_path=self.context.enhance_system_prompt_path,
-            user_prompt_template_path=self.context.enhance_user_prompt_path
+            system_prompt_template_path=system_path,
+            user_prompt_template_path=user_path
         )
 
     def get_prompts(self, parameters):
