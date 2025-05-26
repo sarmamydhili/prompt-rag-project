@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 # Local imports
 import config
-from pipeline.pipeline_utils.db_connections import get_mysql_connection, get_mongo_connection, get_chroma_connection, DBConfig, save_to_mongodb, save_to_chroma
+from pipeline.pipeline_utils.db_connections import get_mysql_connection, get_mongo_connection, DBConfig
 from pipeline.generation_pipeline.build_prompt import PromptBuilder
 from pipeline.pipeline_utils.llm_connections import LLMConnections
 from pipeline.pipeline_utils.mongo_operations import MongoOperations
@@ -38,15 +38,12 @@ class GlobalContext:
         self.mysql_conn = None
         self.mongo_client = None
         self.mongo_db = None
-        self.chroma_client = None
-        self.chroma_collection = None
         self.mongo_operations = None
         self.sql_operations = None
 
         # Collection names will be loaded from task_config
         self.mongo_questions_collection = None  # For reading questions
         self.mongo_output_collection_name = None  # For writing enhanced/generated questions
-        self.chroma_collection_name = None
 
         # Add new attributes for Bloom's level specific prompts
         self.bloom_prompt_paths = {
@@ -72,8 +69,11 @@ class GlobalContext:
             }
         }
 
-        # Load application configurations from JSON
+        # Load application configurations from properties file
         self._load_app_config()
+        
+        # Initialize database connections after config is loaded
+        self.initialize()
 
     def _load_app_config(self):
         """Load application configurations from task_config.properties"""
@@ -82,7 +82,6 @@ class GlobalContext:
             pipeline_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             config_path = os.path.join(pipeline_dir, 'task_config.properties')
             print(f"Looking for config file at: {config_path}")
-            print(f"Pipeline directory: {pipeline_dir}")
             
             # Check if file exists
             if not os.path.exists(config_path):
@@ -98,10 +97,9 @@ class GlobalContext:
                 for key, value in config.items(section):
                     setattr(self, key, value)
 
-            # Set collection names from task_config
-            self.mongo_questions_collection = getattr(self, 'mongo_questions_collection', 'questions')
-            self.mongo_output_collection_name = getattr(self, 'mongo_output_collection_name', 'enhanced_questions')
-            self.chroma_collection_name = getattr(self, 'chroma_collection_name', 'questions_embeddings')
+            # Initialize DBConfig with the loaded context
+            DBConfig.initialize_from_context(self)
+            print("✓ DBConfig initialized with context")
 
             # Verify the properties were set
             required_props = ['task_name', 'skill_ids', 'num_questions', 'prompt_type', 'output_mode']
@@ -143,27 +141,40 @@ class GlobalContext:
 
     def initialize(self):
         """Initialize all connections and services"""
-        # Initialize database connections
-        self.mysql_conn = get_mysql_connection()
-        self.mongo_client, self.mongo_db = get_mongo_connection()
-        self.chroma_client, self.chroma_collection = get_chroma_connection()
-        self.mongo_operations = MongoOperations()
-        self.sql_operations = SQLOperations()
-        
-        # Validate required properties
-        if not hasattr(self, 'task_name') and not hasattr(self, 'skill_ids'):
-            raise ValueError("Either task_name or skill_ids must be provided in task_config.json")
+        try:
+            # Initialize database connections
+            print("\nInitializing database connections...")
+            self.mysql_conn = get_mysql_connection()
+            print("✓ MySQL connection established")
+            
+            self.mongo_client, self.mongo_db = get_mongo_connection()
+            print("✓ MongoDB connection established")
+            
+            self.mongo_operations = MongoOperations()
+            print("✓ MongoOperations initialized")
+            
+            self.sql_operations = SQLOperations()
+            print("✓ SQLOperations initialized")
+            
+            # Validate required properties
+            if not hasattr(self, 'task_name') and not hasattr(self, 'skill_ids'):
+                raise ValueError("Either task_name or skill_ids must be provided in task_config.json")
 
-        # Extract LLM model parameters
-        self.llm_model_params = {
-            "llm_model": getattr(self, 'llm_model', None),
-            "openai_llm_model": getattr(self, 'openai_llm_model', None),
-            "gemini_llm_model": getattr(self, 'gemini_llm_model', None),
-            "deepseek_llm_model": getattr(self, 'deepseek_llm_model', None),
-            "anthropic_llm_model": getattr(self, 'anthropic_llm_model', None),
-            "grok_llm_model": getattr(self, 'grok_llm_model', None),
-            "temperature": getattr(self, 'temperature', 0.2)
-        }
+            # Extract LLM model parameters
+            self.llm_model_params = {
+                "llm_model": getattr(self, 'llm_model', None),
+                "openai_llm_model": getattr(self, 'openai_llm_model', None),
+                "gemini_llm_model": getattr(self, 'gemini_llm_model', None),
+                "deepseek_llm_model": getattr(self, 'deepseek_llm_model', None),
+                "anthropic_llm_model": getattr(self, 'anthropic_llm_model', None),
+                "grok_llm_model": getattr(self, 'grok_llm_model', None),
+                "temperature": getattr(self, 'temperature', 0.2)
+            }
+            print("✓ LLM model parameters loaded")
+            
+        except Exception as e:
+            print(f"Error during initialization: {str(e)}")
+            raise
 
     def resolve_skills_from_context(self):
         """Resolve skills from the context based on skill_ids or task_name"""
@@ -190,51 +201,36 @@ class GlobalContext:
             print(f"Error resolving skills: {str(e)}")
             raise
 
-    def _format_learning_objectives(self, additional_details: str, skill_name: str) -> tuple[List[str], str]:
+    def _format_learning_objectives(self, skill_data: dict) -> tuple[List[str], str]:
         """
-        Format learning objectives from additional details
+        Get learning objectives from course framework using subject and skill_name from skill_data
         Args:
-            additional_details: JSON string containing additional details
-            skill_name: Name of the skill
+            skill_data: Dictionary containing skill information including subject and skill_name
         Returns:
             Tuple of (list of learning objectives, skill topic)
         """
         learning_objectives = []
         try:
-            # Parse the additional details
-            details = json.loads(additional_details)
-            print("\nParsed additional details:")
-            print(json.dumps(details, indent=2))
+            # Get objectives from course framework using subject and skill_name
+            subject = skill_data.get('subject')
+            skill_name = skill_data.get('skill_name')
             
-            # Handle the case where details is a list
-            if isinstance(details, list):
-                # If it's a list of objectives, use them directly
-                for objective in details:
-                    if isinstance(objective, dict) and 'description' in objective:
-                        learning_objectives.append(objective['description'])
-                        print(f"Added suggested skill: {objective['description']}")
-                # Use the skill name as the topic
-                skill = skill_name
-            else:
-                # Use unit as the topic if it's a dictionary
-                skill = details.get('unit')
-                if not skill:
-                    print("Warning: No unit found in additional details")
-                    return [], skill_name
-                
-                # Get objectives as suggested skills
-                if 'objectives' in details:
-                    for objective in details['objectives']:
-                        if 'description' in objective:
-                            learning_objectives.append(objective['description'])
-                            #print(f"Added suggested skill: {objective['description']}")
+            if subject and skill_name:
+                learning_objectives = self.mongo_operations.get_unit_objectives(
+                    subject=subject,
+                    unit=skill_name
+                )
+                print(f"\nRetrieved {len(learning_objectives)} objectives for subject: {subject}, unit: {skill_name}")
+            
+            # Use skill_name as the topic
+            skill = skill_name
             
             print(f"\nUsing skill as topic: {skill}")
             return learning_objectives, skill
 
-        except json.JSONDecodeError as e:
-            print(f"Error parsing additional details: {e}")
-            return [], skill_name
+        except Exception as e:
+            print(f"Error getting learning objectives: {e}")
+            return [], skill_data.get('skill_name', '')
 
     def get_skill_topic_parameters(self, skills_data):
         """
@@ -252,17 +248,8 @@ class GlobalContext:
         for skill_data in skills_data:
             print(f"\nProcessing skill: {skill_data['skill_name']}")
             
-            # Get the additional details
-            additional_details = skill_data.get('skill_additional_details', {})
-            if not additional_details:
-                print("Warning: No additional details found for skill")
-                continue
-                
-            # Format learning objectives
-            learning_objectives, skill = self._format_learning_objectives(
-                additional_details, 
-                skill_data["skill_name"]
-            )
+            # Format learning objectives using only skill_data
+            learning_objectives, skill = self._format_learning_objectives(skill_data)
             
             skill_topic_params.append({
                 'skill_id': skill_data["skill_id"],
@@ -543,21 +530,19 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
 
 class BaseWorkflow:
     def __init__(self):
-        self.context = self.initialize_context()
-        self.llm_connections = LLMConnections(config=self.context.llm_model_params)
-
-    def initialize_context(self):
-        print("Initializing context...")
-        context = GlobalContext()  # Creates context and loads task_config.properties
-        context.initialize()       # Initializes connections and services
+        print("Initializing workflow...")
+        self.context = GlobalContext()  # This now handles both config loading and initialization
         
         # Validate context is properly loaded
-        if not hasattr(context, 'task_name') and not hasattr(context, 'skill_ids'):
+        if not hasattr(self.context, 'task_name') and not hasattr(self.context, 'skill_ids'):
             raise ValueError("Either task_name or skill_ids must be provided in task_config.properties")
         
-        print(f"Context loaded with task: {getattr(context, 'task_name', 'None')}")
-        print(f"Skill IDs: {getattr(context, 'skill_ids', [])}")
-        return context
+        print(f"Context loaded with task: {getattr(self.context, 'task_name', 'None')}")
+        print(f"Skill IDs: {getattr(self.context, 'skill_ids', [])}")
+        
+        # Initialize LLM connections after context is ready
+        self.llm_connections = LLMConnections(config=self.context.llm_model_params)
+        print("✓ LLM connections initialized")
 
     def get_prompts(self, parameters):
         """Base method to be overridden by specific workflows"""
@@ -798,10 +783,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
             skill = skill_data[0]  # Get the first (and should be only) skill
             
             # Format learning objectives from additional details
-            learning_objectives, skill_topic = self.context._format_learning_objectives(
-                skill.get('skill_additional_details', '{}'),
-                skill['skill_name']
-            )
+            learning_objectives, skill_topic = self.context._format_learning_objectives(skill)
             
             # Prepare parameters for the prompts
             parameters = {

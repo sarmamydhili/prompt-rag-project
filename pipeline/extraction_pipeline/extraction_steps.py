@@ -9,7 +9,6 @@ sys.path.insert(0, project_root)
 import json
 import datetime
 from dotenv import load_dotenv
-from typing import List, Dict, Optional
 
 # Third-party imports
 from tqdm import tqdm

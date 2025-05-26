@@ -4,8 +4,10 @@ from pipeline.pipeline_utils.db_connections import get_mongo_connection, DBConfi
 
 class MongoOperations:
     def __init__(self):
+        """Initialize MongoDB operations with connection from db_connections"""
         self.mongo_client, self.mongo_db = get_mongo_connection()
         self.questions_collection = self.mongo_db[DBConfig.MONGO_QUESTIONS_COLLECTION]
+        self.course_framework_collection = self.mongo_db[DBConfig.MONGO_COURSE_FRAMEWORK_COLLECTION]
 
     def get_questions_by_skill(self, skill_name: Optional[str] = None, skill: Optional[str] = None, limit: Optional[int] = None) -> List[Dict]:
         """
@@ -59,4 +61,138 @@ class MongoOperations:
     def close(self):
         """Close the MongoDB connection"""
         if self.mongo_client:
-            self.mongo_client.close() 
+            self.mongo_client.close()
+
+    def inspect_course_framework(self):
+        """
+        Inspect the structure of documents in the course framework collection.
+        This is a diagnostic method to help understand the data structure.
+        """
+        try:
+            print("\nDEBUG: Inspecting course framework collection...")
+            print(f"Collection name: {self.course_framework_collection.name}")
+            
+            # Get total document count
+            doc_count = self.course_framework_collection.count_documents({})
+            print(f"Total documents: {doc_count}")
+            
+            if doc_count > 0:
+                # Get a sample document
+                sample_doc = self.course_framework_collection.find_one()
+                print("\nSample document structure:")
+                print(f"Subject: {sample_doc.get('subject', 'Not found')}")
+                print(f"Units count: {len(sample_doc.get('units', []))}")
+                
+                if 'units' in sample_doc:
+                    # Print first unit structure
+                    first_unit = sample_doc['units'][0]
+                    print("\nFirst unit structure:")
+                    print(f"Unit name: {first_unit.get('unit', 'Not found')}")
+                    print(f"Topics count: {len(first_unit.get('topics', []))}")
+                    
+                    if 'topics' in first_unit:
+                        # Print first topic structure
+                        first_topic = first_unit['topics'][0]
+                        print("\nFirst topic structure:")
+                        print(f"Topic name: {first_topic.get('topic', 'Not found')}")
+                        print(f"Objectives count: {len(first_topic.get('objectives', []))}")
+                        
+                        if 'objectives' in first_topic:
+                            # Print first objective
+                            first_objective = first_topic['objectives'][0]
+                            print("\nFirst objective structure:")
+                            print(f"Description: {first_objective.get('description', 'Not found')}")
+            
+            # Get list of all unique subjects
+            subjects = self.course_framework_collection.distinct("subject")
+            print("\nAvailable subjects:")
+            for subject in subjects:
+                print(f"- {subject}")
+                
+        except Exception as e:
+            print(f"Error inspecting course framework: {str(e)}")
+            print("DEBUG: Full error details:", exc_info=True)
+            
+    def get_unit_objectives(self, subject: str, unit: str) -> List[str]:
+        """
+        Get all objective descriptions for a specific subject and unit.
+        
+        Args:
+            subject (str): The subject name (e.g., "AP Calculus BC")
+            unit (str): The unit name (e.g., "Limits and Continuity")
+            
+        Returns:
+            List[str]: List of objective descriptions for the specified unit
+        """
+        try:
+            print(f"\nDEBUG: Fetching unit objectives for subject: '{subject}', unit: '{unit}'")
+            print(f"DEBUG: Using collection: {self.course_framework_collection.name}")
+            
+            # First inspect the collection structure
+            self.inspect_course_framework()
+            
+            # First check if the collection has any documents
+            doc_count = self.course_framework_collection.count_documents({})
+            print(f"DEBUG: Total documents in collection: {doc_count}")
+            
+            # Check if we have any documents with the given subject
+            subject_count = self.course_framework_collection.count_documents({"subject": subject})
+            print(f"DEBUG: Documents with subject '{subject}': {subject_count}")
+            
+            # Using aggregation pipeline to:
+            # 1. Match the subject
+            # 2. Unwind the units array to work with individual units
+            # 3. Match the specific unit
+            # 4. Unwind the topics array
+            # 5. Unwind the objectives array
+            # 6. Project only the descriptions
+            # 7. Group them into an array
+            pipeline = [
+                {
+                    "$match": {
+                        "subject": subject
+                    }
+                },
+                {
+                    "$unwind": "$units"
+                },
+                {
+                    "$match": {
+                        "units.unit": unit
+                    }
+                },
+                {
+                    "$unwind": "$units.topics"
+                },
+                {
+                    "$unwind": "$units.topics.objectives"
+                },
+                {
+                    "$group": {
+                        "_id": None,
+                        "descriptions": {
+                            "$push": "$units.topics.objectives.description"
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "descriptions": 1
+                    }
+                }
+            ]
+            
+            print(f"DEBUG: Executing aggregation pipeline...")
+            result = list(self.course_framework_collection.aggregate(pipeline))
+            print(f"DEBUG: Pipeline result: {result}")
+
+            # Return the descriptions array or empty array if no results
+            descriptions = result[0]['descriptions'] if result else []
+            print(f"DEBUG: Returning {len(descriptions)} objectives")
+            return descriptions
+            
+        except Exception as e:
+            print(f"Error fetching unit objectives: {str(e)}")
+            print(f"DEBUG: Full error details:", exc_info=True)
+            return [] 

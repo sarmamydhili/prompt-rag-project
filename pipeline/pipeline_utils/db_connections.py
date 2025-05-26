@@ -7,29 +7,59 @@ from chromadb.config import Settings
 import config
 import datetime
 from typing import Tuple, Optional
-from pipeline.pipeline_utils.embed_questions import embed_question
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
-# Database configurations
 class DBConfig:
-    # MySQL configurations
-    MYSQL_HOST = config.mysql_host
-    MYSQL_USER = config.mysql_user
-    MYSQL_PASSWORD = config.mysql_password
-    MYSQL_DATABASE = config.mysql_database
+    """Database configuration class that combines environment variables and application config"""
     
-    # MongoDB configurations
-    MONGO_SERVER = config.MONGODB_SERVER
-    MONGO_PORT = config.MONGODB_PORT
-    MONGO_USER = config.MONGODB_USER
-    MONGO_PASSWORD = config.MONGODB_PASSWORD
-    MONGO_DB_NAME = config.MONGODB_DB_NAME
-    MONGO_QUESTIONS_COLLECTION = config.MONGODB_QUESTIONS_COLLECTION
-    MONGO_ADAPTIVE_DB_NAME = config.MONGODB_ADAPTIVE_DB_NAME
-    MONGO_URI = config.MONGO_URI
-    CHROMA_COLLECTION_NAME = config.CHROMA_COLLECTION_NAME
+    # Environment variables (from config.py)
+    MONGODB_USER = config.MONGODB_USER
+    MONGODB_PASSWORD = config.MONGODB_PASSWORD
+    MYSQL_USER = config.MYSQL_USER
+    MYSQL_PASSWORD = config.MYSQL_PASSWORD
+    
+    # Application config (from task_config.properties via GlobalContext)
+    # These will be set by GlobalContext when initializing the application
+    MONGO_SERVER = None  # Will be set from task_config
+    MONGO_PORT = None    # Will be set from task_config
+    MONGO_DB_NAME = None # Will be set from task_config
+    MONGO_QUESTIONS_COLLECTION = None  # Will be set from task_config
+    MONGO_COURSE_FRAMEWORK_COLLECTION = None  # Will be set from task_config
+    MONGO_OUTPUT_COLLECTION = None  # Will be set from task_config
+    MONGO_ADAPTIVE_DB_NAME = None  # Will be set from task_config
+    
+    MYSQL_HOST = None  # Will be set from task_config
+    MYSQL_DATABASE = None  # Will be set from task_config
+    
+    CHROMA_COLLECTION_NAME = None  # Will be set from task_config
+    CHROMA_PERSIST_DIRECTORY = None  # Will be set from task_config
+    
+    @classmethod
+    def initialize_from_context(cls, context):
+        """Initialize application config from GlobalContext"""
+        # MongoDB settings
+        cls.MONGO_SERVER = getattr(context, 'mongo_server', '127.0.0.1')
+        cls.MONGO_PORT = getattr(context, 'mongo_port', '27017')
+        cls.MONGO_DB_NAME = getattr(context, 'mongo_db_name', 'prompt_project')
+        cls.MONGO_QUESTIONS_COLLECTION = getattr(context, 'mongo_questions_collection', 'questions')
+        cls.MONGO_COURSE_FRAMEWORK_COLLECTION = getattr(context, 'mongo_course_framework_collection', 'course_framework')
+        cls.MONGO_OUTPUT_COLLECTION = getattr(context, 'mongo_output_collection', 'output_questions_enhanced')
+        cls.MONGO_ADAPTIVE_DB_NAME = getattr(context, 'mongo_adaptive_db_name', 'adaptive_learning_docs')
+        
+        # MySQL settings
+        cls.MYSQL_HOST = getattr(context, 'mysql_host', 'localhost')
+        cls.MYSQL_DATABASE = getattr(context, 'mysql_database', 'adaptive_learning')
+        
+        # Chroma settings
+        cls.CHROMA_COLLECTION_NAME = getattr(context, 'chroma_collection_name', 'questions_collection')
+        cls.CHROMA_PERSIST_DIRECTORY = getattr(context, 'chroma_persist_directory', 'chroma_db')
+        
+        # Construct MongoDB URI
+        cls.MONGO_URI = f"mongodb://{cls.MONGO_SERVER}:{cls.MONGO_PORT}/"
+        if cls.MONGODB_USER and cls.MONGODB_PASSWORD:
+            cls.MONGO_URI = f"mongodb://{cls.MONGODB_USER}:{cls.MONGODB_PASSWORD}@{cls.MONGO_SERVER}:{cls.MONGO_PORT}/"
 
 def get_mysql_connection():
     """
@@ -57,7 +87,7 @@ def get_mongo_connection() -> Tuple[MongoClient, any]:
     """
     try:
         client = MongoClient(DBConfig.MONGO_URI)
-        db = client["adaptive_learning_docs"]
+        db = client[DBConfig.MONGO_DB_NAME]
         return client, db
     except Exception as e:
         print(f"Error connecting to MongoDB: {e}")
@@ -77,81 +107,6 @@ def get_chroma_connection() -> Tuple[chromadb.Client, any]:
         print(f"Error connecting to Chroma: {e}")
         raise
 
-def save_to_mongodb(question, mongo_db, collection_name):
-    """
-    Save a question with its metadata to MongoDB and return its ID
-    Args:
-        question: Dictionary containing question and metadata
-        mongo_db: MongoDB database instance
-        collection_name: Name of the collection to save to
-    Returns:
-        str: MongoDB document ID
-    """
-    try:
-        # Add timestamp
-        question["created_at"] = datetime.datetime.now()
-        
-        # Ensure metadata is properly structured
-        if "metadata" not in question:
-            question["metadata"] = {}
-            
-        # Add searchable fields for better querying
-        question["searchable_fields"] = {
-            "topics": question["metadata"].get("topic", ""),
-            "keywords": question["metadata"].get("keywords", []),
-            "blooms_level": question["metadata"].get("blooms_level", ""),
-            "concepts": question["metadata"].get("concepts_tested", []),
-            "difficulty": question["metadata"].get("difficulty", ""),
-            "question_type": question["metadata"].get("question_type", ""),
-            # Additional searchable fields
-            "prerequisites": question["metadata"].get("prerequisites", []),
-            "common_misconceptions": question["metadata"].get("common_misconceptions", []),
-            "real_world_applications": question["metadata"].get("real_world_applications", []),
-            "cross_curricular_connections": question["metadata"].get("cross_curricular_connections", []),
-            "solution_strategy": question["metadata"].get("solution_strategy", ""),
-            "time_estimate": question["metadata"].get("time_estimate", ""),
-            # New fields for question generation
-            "question_pattern": question["metadata"].get("question_pattern", ""),  # e.g., "word_problem", "proof", "calculation"
-            "mathematical_operations": question["metadata"].get("mathematical_operations", []),  # e.g., ["differentiation", "integration"]
-            "context_type": question["metadata"].get("context_type", ""),  # e.g., "theoretical", "applied", "experimental"
-            "cognitive_demand": question["metadata"].get("cognitive_demand", ""),  # e.g., "low", "medium", "high"
-            "answer_format": question["metadata"].get("answer_format", ""),  # e.g., "numerical", "symbolic", "verbal"
-            "question_family": question["metadata"].get("question_family", "")  # Group of related questions
-        }
-        
-        # Create indexes for efficient querying
-        mongo_db[collection_name].create_index([
-            ("question", "text"),
-            ("searchable_fields.topics", "text"),
-            ("searchable_fields.keywords", "text"),
-            ("searchable_fields.concepts", "text"),
-            ("searchable_fields.prerequisites", "text"),
-            ("searchable_fields.common_misconceptions", "text"),
-            ("searchable_fields.real_world_applications", "text"),
-            ("searchable_fields.cross_curricular_connections", "text"),
-            ("searchable_fields.solution_strategy", "text")
-        ])
-        
-        # Create compound indexes for common query patterns
-        mongo_db[collection_name].create_index([
-            ("searchable_fields.difficulty", 1),
-            ("searchable_fields.blooms_level", 1),
-            ("searchable_fields.question_type", 1)
-        ])
-        
-        mongo_db[collection_name].create_index([
-            ("searchable_fields.topic", 1),
-            ("searchable_fields.cognitive_demand", 1),
-            ("searchable_fields.question_pattern", 1)
-        ])
-        
-        # Insert the document
-        mongo_id = mongo_db[collection_name].insert_one(question).inserted_id
-        return str(mongo_id)
-    except Exception as e:
-        print(f"Error saving to MongoDB: {e}")
-        raise
-
 def save_to_chroma(question_text, question_id, metadata):
     """
     Save a question to Chroma with enhanced metadata for better searchability
@@ -160,6 +115,9 @@ def save_to_chroma(question_text, question_id, metadata):
         question_id: MongoDB document ID
         metadata: Dictionary containing question metadata
     """
+    # Import here to avoid circular dependency
+    from pipeline.pipeline_utils.embed_questions import embed_question
+    
     try:
         # Prepare metadata for Chroma
         chroma_metadata = {
