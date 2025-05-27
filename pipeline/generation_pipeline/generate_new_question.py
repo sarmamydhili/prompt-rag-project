@@ -92,10 +92,19 @@ class GlobalContext:
             config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
             config.read(config_path)
 
-            # Load all configurations directly
+            # Load MongoDB collection names
+            if 'mongodb' in config:
+                self.mongo_questions_collection = config['mongodb'].get('mongo_questions_collection')
+                self.mongo_output_collection_name = config['mongodb'].get('mongo_output_collection')
+                print(f"✓ MongoDB collection names loaded:")
+                print(f"  - Questions collection: {self.mongo_questions_collection}")
+                print(f"  - Output collection: {self.mongo_output_collection_name}")
+
+            # Load all other configurations directly
             for section in config.sections():
                 for key, value in config.items(section):
-                    setattr(self, key, value)
+                    if key not in ['mongo_questions_collection', 'mongo_output_collection']:  # Skip these as they're handled above
+                        setattr(self, key, value)
 
             # Initialize DBConfig with the loaded context
             DBConfig.initialize_from_context(self)
@@ -415,6 +424,10 @@ class GlobalContext:
     def store_output_to_mongo(self, content):
         if content:
             try:
+                # Validate collection name is set
+                if not hasattr(self, 'mongo_output_collection_name') or not self.mongo_output_collection_name:
+                    raise ValueError("MongoDB output collection name not set in configuration")
+                
                 parsed_json = json.loads(content)
                 questions_collection = self.mongo_db[self.mongo_output_collection_name]
                 
@@ -440,6 +453,12 @@ class GlobalContext:
             except json.JSONDecodeError as e:
                 print(f"JSON decoding failed: {e}")
                 print("Raw API response that caused the error:\n", content)
+            except ValueError as e:
+                print(f"Configuration error: {e}")
+                raise
+            except Exception as e:
+                print(f"Error storing content to MongoDB: {e}")
+                raise
 
     def _load_sample_questions(self, sample_questions_file):
         """
