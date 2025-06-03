@@ -11,6 +11,7 @@ EVERY question MUST have:
 
 ### Task:
 - Generate exactly **{num_questions} multiple-choice** questions that focus on comprehension and interpretation for the topic **'{skill}'**.
+- **CRITICAL: Each question MUST include the model name that generated it**
 {sample_questions_section}
 
 ### Focus Areas for Understanding Level:
@@ -39,6 +40,7 @@ Each question must include:
 - skill_name concatenating bloom level and topic as "Understanding-<topic>"
 - Subject
 - Subject Area
+- Model name that generated the question
 - Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
 
 ### Example Question Types:
@@ -49,11 +51,13 @@ Each question must include:
 5. Concept comparison: "How does [concept A] differ from [concept B]?"
 
 ### Expected JSON Output:
+You MUST include the model name that generated each question in the output.
 Return a JSON object with the following structure:
 
 {{
   "questions": [
     {{
+      "model_name": "model-name-here",
       "question": "Question text here...",
       "multiple_choices": [
         "A. Option A text",

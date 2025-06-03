@@ -134,22 +134,22 @@ class LLMConnections:
             print(f"Error during DeepSeek API call or processing: {e}")
             return None
 
-    def _call_anthropic_api(self, system_prompt, user_prompt, model='claude-3-5-sonnet-latest', temperature=0.6):
+    def _call_anthropic_api(self, system_prompt, user_prompt, model=None, temperature=0.0):
         """
         Private method to call the Anthropic Claude API.
         """
         try:
             print('Calling Anthropic Claude API for content generation...')
             anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-            system_message = "You are a direct question generator. Do not ask any clarifying questions. Generate questions immediately based on the provided parameters. Return a JSON document with the following structure:"
+            combined_system_prompt = f"You are {model}. {system_prompt}"
             message = anthropic_client.messages.create(
                 model=model,
                 max_tokens=8000,
-                system=system_message,
+                system=combined_system_prompt,
                 messages=[
                     {
                         "role": "user",
-                        "content": f"{system_prompt}\n\n{user_prompt}"
+                        "content": user_prompt
                     }
                 ],
                 temperature=temperature
@@ -182,7 +182,7 @@ class LLMConnections:
             )
             print('Grok API call successful.')
             ai_response_content = completion.choices[0].message.content
-            print('Grok AI response received.', ai_response_content)
+            print('Grok AI response received.')
             return ai_response_content
         except Exception as e:
             print(f"Error during Grok API call or processing: {e}")

@@ -14,6 +14,7 @@ EVERY question MUST have:
 - Questions MUST be at AP exam level difficulty and complexity
 - Each question MUST integrate multiple concepts and require deep analytical thinking
 - **CRITICAL: Approximately 30-40% of questions MUST include diagrams**
+- **CRITICAL: Each question MUST include the model name that generated it**
 - For questions requiring diagrams, ensure they are essential for solving the problem
 {sample_questions_section}
 
@@ -60,6 +61,7 @@ Each question must include:
 - skill_name concatenating bloom level and topic as "Analyzing-<topic>"
 - Subject
 - Subject Area
+- Model name that generated the question
 - Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
 - Difficulty level: AP Exam Level
 - Integration of multiple concepts
@@ -88,11 +90,13 @@ If a question requires a diagram:
 5. Multi-factor cause-effect analysis: "What is the most likely cause of [phenomenon] when considering [factor A], [factor B], and [factor C]?"
 
 ### Expected JSON Output:
+You MUST include the model name that generated each question in the output.
 Return a JSON object with the following structure:
 
 {{
   "questions": [
     {{
+      "model_name": "model-name-here",
       "question": "Question text here...",
       "multiple_choices": [
         "A. Option A text",

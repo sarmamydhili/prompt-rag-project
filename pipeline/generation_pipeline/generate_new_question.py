@@ -445,9 +445,9 @@ class GlobalContext:
                     if isinstance(question, dict):
                         try:
                             question['created_at'] = datetime.utcnow()
-                            print(f"Attempting to insert question: {question['question']} in collection: {self.mongo_output_collection_name}")
+                            #print(f"Attempting to insert question: {question['question']} in collection: {self.mongo_output_collection_name}")
                             questions_collection.insert_one(question)
-                            print(f"✅ Successfully inserted question: {question['question']}")
+                            #print(f"✅ Successfully inserted question: {question['question']}")
                         except Exception as e:
                             print(f"❌ Failed to insert question: {question['question']}")
                             print(f"Error details: {str(e)}")
@@ -544,7 +544,7 @@ def generate_content_with_llm(context, skill_topic_params, sample_questions_sect
         if system_prompt is None or user_prompt is None:
             print(f"Failed to get prompts for skill: {params['skill']}")
             continue
-        print(f"**System prompt: {system_prompt} \n\n **User prompt: {user_prompt}")
+        #print(f"**System prompt: {system_prompt} \n\n **User prompt: {user_prompt}")
         
         # Generate content
         content = context.generate_content_from_llm(system_prompt, user_prompt, llm_connections)
