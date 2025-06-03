@@ -443,10 +443,15 @@ class GlobalContext:
                 
                 for question in questions_to_process:
                     if isinstance(question, dict):
-                        question['created_at'] = datetime.utcnow()
-                        print(f"Inserting question: {question['question']} in collection: {self.mongo_output_collection_name}")
-                        questions_collection.insert_one(question)
-                        print(f"Inserted question: {question['question']} in collection: {self.mongo_output_collection_name}")
+                        try:
+                            question['created_at'] = datetime.utcnow()
+                            print(f"Attempting to insert question: {question['question']} in collection: {self.mongo_output_collection_name}")
+                            questions_collection.insert_one(question)
+                            print(f"✅ Successfully inserted question: {question['question']}")
+                        except Exception as e:
+                            print(f"❌ Failed to insert question: {question['question']}")
+                            print(f"Error details: {str(e)}")
+                            continue  # Continue to next question
                     else:
                         print(f"Skipped non-dictionary item: {question}")
                         
@@ -873,7 +878,7 @@ class QuestionEnhanceWorkflow(BaseWorkflow):
 
         except Exception as e:
             print(f"❌ Error in enhancement workflow: {str(e)}")
-            raise
+            raise   
 
 
 def main():

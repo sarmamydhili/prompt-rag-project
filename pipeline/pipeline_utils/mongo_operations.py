@@ -69,49 +69,49 @@ class MongoOperations:
         This is a diagnostic method to help understand the data structure.
         """
         try:
-            print("\nDEBUG: Inspecting course framework collection...")
-            print(f"Collection name: {self.course_framework_collection.name}")
+            # print("\nDEBUG: Inspecting course framework collection...")
+            # print(f"Collection name: {self.course_framework_collection.name}")
             
             # Get total document count
             doc_count = self.course_framework_collection.count_documents({})
-            print(f"Total documents: {doc_count}")
+            # print(f"Total documents: {doc_count}")
             
             if doc_count > 0:
                 # Get a sample document
                 sample_doc = self.course_framework_collection.find_one()
-                print("\nSample document structure:")
-                print(f"Subject: {sample_doc.get('subject', 'Not found')}")
-                print(f"Units count: {len(sample_doc.get('units', []))}")
+                # print("\nSample document structure:")
+                # print(f"Subject: {sample_doc.get('subject', 'Not found')}")
+                # print(f"Units count: {len(sample_doc.get('units', []))}")
                 
                 if 'units' in sample_doc:
                     # Print first unit structure
                     first_unit = sample_doc['units'][0]
-                    print("\nFirst unit structure:")
-                    print(f"Unit name: {first_unit.get('unit', 'Not found')}")
-                    print(f"Topics count: {len(first_unit.get('topics', []))}")
+                    # print("\nFirst unit structure:")
+                    # print(f"Unit name: {first_unit.get('unit', 'Not found')}")
+                    # print(f"Topics count: {len(first_unit.get('topics', []))}")
                     
                     if 'topics' in first_unit:
                         # Print first topic structure
                         first_topic = first_unit['topics'][0]
-                        print("\nFirst topic structure:")
-                        print(f"Topic name: {first_topic.get('topic', 'Not found')}")
-                        print(f"Objectives count: {len(first_topic.get('objectives', []))}")
+                        # print("\nFirst topic structure:")
+                        # print(f"Topic name: {first_topic.get('topic', 'Not found')}")
+                        # print(f"Objectives count: {len(first_topic.get('objectives', []))}")
                         
                         if 'objectives' in first_topic:
                             # Print first objective
                             first_objective = first_topic['objectives'][0]
-                            print("\nFirst objective structure:")
-                            print(f"Description: {first_objective.get('description', 'Not found')}")
+                            # print("\nFirst objective structure:")
+                            # print(f"Description: {first_objective.get('description', 'Not found')}")
             
             # Get list of all unique subjects
             subjects = self.course_framework_collection.distinct("subject")
-            print("\nAvailable subjects:")
-            for subject in subjects:
-                print(f"- {subject}")
+            # print("\nAvailable subjects:")
+            # for subject in subjects:
+            #     print(f"- {subject}")
                 
         except Exception as e:
             print(f"Error inspecting course framework: {str(e)}")
-            print("DEBUG: Full error details:", exc_info=True)
+            # print("DEBUG: Full error details:", exc_info=True)
             
     def get_unit_objectives(self, subject: str, unit: str) -> List[str]:
         """
@@ -125,19 +125,19 @@ class MongoOperations:
             List[str]: List of objective descriptions for the specified unit
         """
         try:
-            print(f"\nDEBUG: Fetching unit objectives for subject: '{subject}', unit: '{unit}'")
-            print(f"DEBUG: Using collection: {self.course_framework_collection.name}")
+            # print(f"\nDEBUG: Fetching unit objectives for subject: '{subject}', unit: '{unit}'")
+            # print(f"DEBUG: Using collection: {self.course_framework_collection.name}")
             
             # First inspect the collection structure
             self.inspect_course_framework()
             
             # First check if the collection has any documents
             doc_count = self.course_framework_collection.count_documents({})
-            print(f"DEBUG: Total documents in collection: {doc_count}")
+            # print(f"DEBUG: Total documents in collection: {doc_count}")
             
             # Check if we have any documents with the given subject
             subject_count = self.course_framework_collection.count_documents({"subject": subject})
-            print(f"DEBUG: Documents with subject '{subject}': {subject_count}")
+            # print(f"DEBUG: Documents with subject '{subject}': {subject_count}")
             
             # Using aggregation pipeline to:
             # 1. Match the subject
@@ -183,16 +183,16 @@ class MongoOperations:
                 }
             ]
             
-            print(f"DEBUG: Executing aggregation pipeline...")
+            # print(f"DEBUG: Executing aggregation pipeline...")
             result = list(self.course_framework_collection.aggregate(pipeline))
-            print(f"DEBUG: Pipeline result: {result}")
+            # print(f"DEBUG: Pipeline result: {result}")
 
             # Return the descriptions array or empty array if no results
             descriptions = result[0]['descriptions'] if result else []
-            print(f"DEBUG: Returning {len(descriptions)} objectives")
+            # print(f"DEBUG: Returning {len(descriptions)} objectives")
             return descriptions
             
         except Exception as e:
             print(f"Error fetching unit objectives: {str(e)}")
-            print(f"DEBUG: Full error details:", exc_info=True)
+            # print(f"DEBUG: Full error details:", exc_info=True)
             return [] 
