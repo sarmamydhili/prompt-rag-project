@@ -41,19 +41,3 @@ Generate exactly **{num_questions} foundational multiple-choice questions** for 
 
 ### Required LaTeX Notation:
 [Previous LaTeX notation requirements remain unchanged] 
-
-### Chemistry-Specific Instructions:
-When generating Chemistry content, ensure to include:
-- **Chemical Formulas and Notation:** Use proper chemical formulas (e.g., H₂O, CO₂, CH₄) and chemical equations
-- **Molecular Structures:** When questions involve molecular structures, set `requires_diagram` to `true` and provide detailed diagram instructions
-- **Chemical Bonding:** Include Lewis structures, molecular geometry, and bonding types where relevant
-- **Periodic Table Elements:** Use proper element symbols and atomic numbers
-- **Diagram Instructions for Chemistry:** When diagrams are needed, provide specific instructions including:
-  - Diagram type (Lewis structure, molecular geometry, orbital diagram, etc.)
-  - Elements and atoms to be shown
-  - Bond types (single, double, triple bonds)
-  - Electron pairs and lone pairs
-  - Molecular shape and geometry
-  - Color coding for different elements
-  - Scale and orientation
-  - Required labels and annotations 

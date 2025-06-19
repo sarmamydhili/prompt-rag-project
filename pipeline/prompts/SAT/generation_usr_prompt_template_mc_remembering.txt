@@ -1,0 +1,62 @@
+Generate exactly **{num_questions} foundational multiple-choice questions** for SAT Math Test using the following parameters:
+- **Subject**: SAT Math Test
+- **Subject Area**: {subject_area}
+- **topic**: {skill}
+- **Bloom's Taxonomy Level**: Remembering (Level 1)
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
+
+- **learning_objectives**: 
+{learning_objectives}
+
+{sample_questions_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on factual recall and basic knowledge acquisition relevant to SAT Math Test.
+2. **CRITICAL: Generate questions that cover ALL learning objectives in the learning objectives above. Each skill must be represented by at least one question.**
+3. Questions must be:
+   - Clear and straightforward
+   - Focused on single concepts
+   - Appropriate for SAT Math Test preparation
+   - Based on factual recall and basic understanding
+   - Aligned with SAT Math content areas: Heart of Algebra, Problem Solving and Data Analysis, Passport to Advanced Math
+4. Ensure:
+   - Basic mathematical notation where appropriate
+   - Clear and unambiguous language
+   - One concept per question
+   - Coverage of all major facts and definitions within {learning_objectives}
+   - Relevance to SAT Math Test format and difficulty level
+5. Each question must include:
+   - A direct question stem
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "B")
+   - **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
+   - Bloom's Taxonomy level (Remembering) and level number (1)
+   - skill - same as topic
+   - skill_name as "Remembering-<Topic>"
+   - Subject (SAT Math Test)
+   - Subject Area
+6. If a diagram is required for basic visualization, set the `requires_diagram` flag to `true` and provide simple diagram instructions.
+7. **Output only valid JSON responses** exactly as described in the system prompt.
+8. **Mathematical Notation:** Use LaTeX inside MathJax delimiters for any mathematical expressions.
+9. Make sure the response follows proper escape invalid sequences
+10. Return the output as a **valid JSON string**, ready to be parsed with `JSON.parse()` or `json.loads()` in code.
+
+### Required LaTeX Notation:
+[Previous LaTeX notation requirements remain unchanged] 
+
+### SAT Math-Specific Instructions:
+When generating SAT Math Test content, ensure to include:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When geometric figures are relevant, set `requires_diagram` to `true` and provide clear diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **SAT Math Formulas:** Include essential SAT Math formulas and relationships
+- **Diagram Instructions for SAT Math:** When diagrams are needed, provide specific instructions including:
+  - Diagram type (coordinate plane, geometric figure, number line, etc.)
+  - Elements to include (points, lines, curves, axes, etc.)
+  - Scale and orientation requirements
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 

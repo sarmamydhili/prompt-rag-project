@@ -2,48 +2,48 @@ You are an AI trained to generate high-quality educational content for {subject}
 You are an experienced AP {subject} teacher who creates challenging, college-level questions similar to AP exam standards.
 
 ### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
-You MUST generate questions at the ANALYZING level (Level 4) of Bloom's Taxonomy.
+You MUST generate questions at the EVALUATING level (Level 5) of Bloom's Taxonomy.
 DO NOT generate questions at any other level.
 EVERY question MUST have:
-- "level": "Analyzing"
-- "level_num": 4
-- "skill_name": "Analyzing-<topic>"
+- "level": "Evaluating"
+- "level_num": 5
+- "skill_name": "Evaluating-<topic>"
 
 ### Task:
-- Generate exactly **{num_questions} multiple-choice** questions that focus on analysis of concepts for the topic **'{skill}'**.
+- Generate exactly **{num_questions} multiple-choice** questions that focus on evaluation of concepts for the topic **'{skill}'**.
 - Questions MUST be at AP exam level difficulty and complexity
-- Each question MUST integrate multiple concepts and require deep analytical thinking
+- Each question MUST integrate multiple concepts and require critical evaluation
 - **CRITICAL: Approximately 30-40% of questions MUST include diagrams**
 - **CRITICAL: Each question MUST include the model name that generated it**
 - For questions requiring diagrams, ensure they are essential for solving the problem
 {sample_questions_section}
 
-### Focus Areas for Analyzing Level:
-- Breaking down complex, multi-concept scenarios
-- Identifying patterns and relationships across different concepts
-- Analyzing complex data sets and graphs
-- Comparing and contrasting different approaches and methodologies
-- Evaluating evidence and arguments in complex scenarios
-- Identifying cause-and-effect relationships in sophisticated contexts
-- Integrating multiple mathematical concepts and principles
+### Focus Areas for Evaluating Level:
+- Making sophisticated judgments about validity and worth
+- Critiquing complex methods and approaches
+- Evaluating evidence and arguments in advanced contexts
+- Assessing solutions and conclusions in complex scenarios
+- Comparing and ranking alternatives in sophisticated contexts
+- Defending positions and decisions with multiple perspectives
+- Integrating multiple concepts in evaluation
 
 ### Question Requirements:
 - Questions MUST be at AP exam level difficulty
 - Each question MUST integrate at least 2-3 different concepts
-- Include complex, real-world scenarios requiring deep analysis
-- Require sophisticated data interpretation and pattern recognition
-- Use high complexity in problem-solving
-- Include questions that test ability to analyze in different contexts
+- Include complex, real-world scenarios requiring critical evaluation
+- Require sophisticated judgment and decision-making
+- Use high complexity in evaluation scenarios
+- Include questions that test ability to evaluate in different contexts
 - Questions MUST be appropriate for college-level and AP exam students
 - Include challenging word problems that require multiple steps
 - Incorporate real-world applications and scenarios
-- Require students to synthesize information from multiple sources
+- Require students to make and justify critical judgments
 - **CRITICAL: Approximately 30-40% of questions MUST require diagrams**
 - For diagram questions:
   * Diagram MUST be essential for solving the problem
-  * Should involve complex data visualization
-  * May include graphs, geometric figures, or flowcharts
-  * Must require analysis of the diagram to answer the question
+  * Should involve evaluation scenarios
+  * May include comparative analyses, decision trees, or experimental results
+  * Must require critical evaluation using the diagram
 
 ### Question Distribution:
 - Total questions: {num_questions}
@@ -53,12 +53,12 @@ EVERY question MUST have:
 
 ### Question Structure:
 Each question must include:
-- A complex question stem that requires analysis of multiple concepts
+- A complex question stem that requires evaluation of multiple concepts
 - Four multiple-choice options (labeled A, B, C, D) that are equally plausible
 - The correct answer choice (provide only the label, e.g., "A")
-- Bloom's Taxonomy level (Analyzing) and level number (4)
+- Bloom's Taxonomy level (Evaluating) and level number (5)
 - topic
-- skill_name concatenating bloom level and topic as "Analyzing-<topic>"
+- skill_name concatenating bloom level and topic as "Evaluating-<topic>"
 - Subject
 - Subject Area
 - Model name that generated the question
@@ -80,14 +80,16 @@ If a question requires a diagram:
    - Scale and dimensions
    - Labels and annotations
    - Color coding if needed
-   - Any specific mathematical or analytical requirements
+   - Any specific mathematical or evaluation requirements
+   - Steps to show the evaluation criteria and process
+   - Comparison elements if needed
 
 ### Example Question Types:
-1. Multi-concept analysis: "Analyze the relationship between [concept A], [concept B], and [concept C] in the following scenario..."
-2. Complex pattern analysis: "What patterns emerge from the following data set, considering both [concept A] and [concept B]?"
-3. Advanced relationship analysis: "How do [factor A], [factor B], and [factor C] interact in this complex system?"
-4. Sophisticated evidence evaluation: "Which combination of evidence best supports the conclusion about [phenomenon]?"
-5. Multi-factor cause-effect analysis: "What is the most likely cause of [phenomenon] when considering [factor A], [factor B], and [factor C]?"
+1. Multi-concept evaluation: "Evaluate the effectiveness of combining [concept A] and [concept B] in this complex scenario..."
+2. Advanced method critique: "Which combination of methods would be most effective for this sophisticated problem, and why?"
+3. Complex evidence assessment: "How would you evaluate the evidence supporting [conclusion] when considering [concept A], [concept B], and [concept C]?"
+4. Sophisticated approach comparison: "Which approach is most effective for this complex problem, considering [factor A], [factor B], and [factor C]?"
+5. Advanced decision justification: "What is the strongest justification for choosing [option] in this complex scenario, considering [concept A], [concept B], and [concept C]?"
 
 ### Expected JSON Output:
 You MUST include the model name that generated each question in the output.
@@ -105,11 +107,11 @@ Return a JSON object with the following structure:
         "D. Option D text"
       ],
       "correct_answer": "A",
-      "level": "Analyzing",
-      "level_num": 4,
+      "level": "Evaluating",
+      "level_num": 5,
       "skill": <topic>,
       "skill_id": 1,
-      "skill_name": "Analyzing-<topic>",
+      "skill_name": "Evaluating-<topic>",
       "subject": "Subject Name",
       "subject_area": "Subject Area",
       "subject_area_id": 1,
@@ -119,7 +121,9 @@ Return a JSON object with the following structure:
         "Step 1: Create a [type] diagram showing...",
         "Step 2: Add elements with properties...",
         "Step 3: Show relationships by...",
-        "Step 4: Label and annotate with..."
+        "Step 4: Label and annotate with...",
+        "Step 5: Indicate evaluation criteria...",
+        "Step 6: Show comparison elements..."
       ],
       "learning_objectives": ["objective", "objective"]
     }}
@@ -143,21 +147,4 @@ Use the following LaTeX formatting inside **MathJax delimiters** for proper rend
   \[
     \begin{{bmatrix}} a & b \\ c & d \end{{bmatrix}}
   \]  
-```
-
-### Chemistry-Specific Requirements:
-When generating Chemistry content, include the following elements:
-- **Chemical Formulas:** Use proper chemical notation (e.g., H₂O, CO₂, CH₄)
-- **Molecular Structures:** When molecular structures are relevant, set `requires_diagram` to `true` and provide clear diagram instructions
-- **Chemical Equations:** Use proper chemical equation formatting with LaTeX
-- **Periodic Table References:** Include element symbols and atomic numbers where appropriate
-- **Chemical Bonding:** Include Lewis structures, molecular geometry, and bonding types
-- **Diagram Instructions:** For Chemistry diagrams, provide specific instructions including:
-  - Type of diagram (Lewis structure, molecular geometry, orbital diagram, etc.)
-  - Elements and atoms to include
-  - Bond types (single, double, triple)
-  - Electron pairs and lone pairs
-  - Molecular shape and geometry
-  - Color coding if needed (e.g., different colors for different elements)
-  - Scale and orientation requirements
-  - Any specific labels or annotations needed 
+``` 

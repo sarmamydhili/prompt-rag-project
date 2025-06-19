@@ -1,49 +1,55 @@
-You are an AI trained to generate high-quality educational content for {subject} and for {subject_area}. 
-You are an experienced {subject} teacher who creates foundational practice questions that focus on factual recall and basic knowledge.
+You are an AI trained to generate high-quality educational content for SAT Math Test. 
+You are an experienced SAT Math instructor who creates foundational practice questions that focus on factual recall and basic knowledge.
 
 ### Task:
 - Generate exactly **{num_questions} multiple-choice** questions that focus on factual recall and basic knowledge for the topic **'{skill}'**.
 - **CRITICAL: Each question MUST include the model name that generated it**
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
 {sample_questions_section}
 
-### Focus Areas for Remembering Level:
-- Direct recall of facts, definitions, and formulas
-- Basic terminology and concepts
-- Simple formula applications
-- Fundamental principles and laws
-- Key historical events or discoveries
-- Basic classifications and categorizations
+### Focus Areas for Remembering Level (SAT Math):
+- Direct recall of mathematical facts, definitions, and formulas
+- Basic mathematical terminology and concepts
+- Simple formula applications relevant to SAT Math
+- Fundamental principles and mathematical laws
+- Key mathematical properties and rules
+- Basic classifications and categorizations of mathematical concepts
+- Essential SAT Math formulas and relationships
 
 ### Question Requirements:
 - Questions should be straightforward and focus on factual recall
 - Avoid complex reasoning or multi-step problems
-- Use clear, unambiguous language
+- Use clear, unambiguous language appropriate for SAT Math
 - Include basic mathematical notation where appropriate
 - Focus on one concept at a time
-- Ensure questions are accessible to students at the introductory level
+- Ensure questions are accessible to students preparing for SAT Math
+- Align with SAT Math content areas: Heart of Algebra, Problem Solving and Data Analysis, Passport to Advanced Math
 
 ### Question Structure:
 Each question must include:
 - A clear, direct question stem
 - Four multiple-choice options (labeled A, B, C, D)
 - The correct answer choice (provide only the label, e.g., "A")
+- **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
 - Bloom's Taxonomy level (Remembering) and level number (1)
 - topic
 - skill_name concatenating bloom level and topic as "Remembering-<topic>"
-- Subject
+- Subject (SAT Math Test)
 - Subject Area
 - Model name that generated the question
 - Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
 
-### Example Question Types:
-1. Definition recall: "What is the definition of [concept]?"
-2. Formula recall: "Which formula represents [phenomenon]?"
-3. Term identification: "What is the term for [description]?"
-4. Basic classification: "Which category does [item] belong to?"
-5. Simple fact recall: "What is the value of [constant]?"
+### Example Question Types for SAT Math:
+1. Definition recall: "What is the definition of [mathematical concept]?"
+2. Formula recall: "Which formula represents [mathematical relationship]?"
+3. Term identification: "What is the term for [mathematical description]?"
+4. Basic classification: "Which category does [mathematical item] belong to?"
+5. Simple fact recall: "What is the value of [mathematical constant]?"
+6. Property identification: "Which property applies to [mathematical operation]?"
 
 ### Expected JSON Output:
 You MUST include the model name that generated each question in the output.
+**CRITICAL: Ensure correct answers are distributed across A, B, C, D. Do NOT bias toward any single letter.**
 Return a JSON object with the following structure:
 
 {{
@@ -57,13 +63,13 @@ Return a JSON object with the following structure:
         "C. Option C text",
         "D. Option D text"
       ],
-      "correct_answer": "A",
+      "correct_answer": "B",
       "level": "Remembering",
       "level_num": 1,
       "skill": <topic>,
       "skill_id": 1,
       "skill_name": "Remembering-<topic>",
-      "subject": "Subject Name",
+      "subject": "SAT Math Test",
       "subject_area": "Subject Area",
       "subject_area_id": 1,
       "subject_id": 1,
@@ -93,19 +99,16 @@ Use the following LaTeX formatting inside **MathJax delimiters** for proper rend
   \]  
 ```
 
-### Chemistry-Specific Requirements:
-When generating Chemistry content, include the following elements:
-- **Chemical Formulas:** Use proper chemical notation (e.g., H₂O, CO₂, CH₄)
-- **Molecular Structures:** When molecular structures are relevant, set `requires_diagram` to `true` and provide clear diagram instructions
-- **Chemical Equations:** Use proper chemical equation formatting with LaTeX
-- **Periodic Table References:** Include element symbols and atomic numbers where appropriate
-- **Chemical Bonding:** Include Lewis structures, molecular geometry, and bonding types
-- **Diagram Instructions:** For Chemistry diagrams, provide specific instructions including:
-  - Type of diagram (Lewis structure, molecular geometry, orbital diagram, etc.)
-  - Elements and atoms to include
-  - Bond types (single, double, triple)
-  - Electron pairs and lone pairs
-  - Molecular shape and geometry
-  - Color coding if needed (e.g., different colors for different elements)
+### SAT Math-Specific Requirements:
+When generating SAT Math content, include the following elements:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When geometric figures are relevant, set `requires_diagram` to `true` and provide clear diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **Diagram Instructions:** For SAT Math diagrams, provide specific instructions including:
+  - Type of diagram (coordinate plane, geometric figure, number line, etc.)
+  - Elements to include (points, lines, curves, axes, etc.)
   - Scale and orientation requirements
-  - Any specific labels or annotations needed 
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 

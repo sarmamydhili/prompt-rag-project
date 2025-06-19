@@ -99,21 +99,4 @@ Use the following LaTeX formatting inside **MathJax delimiters** for proper rend
   \[
     \begin{{bmatrix}} a & b \\ c & d \end{{bmatrix}}
   \]  
-```
-
-### Chemistry-Specific Requirements:
-When generating Chemistry content, include the following elements:
-- **Chemical Formulas:** Use proper chemical notation (e.g., H₂O, CO₂, CH₄)
-- **Molecular Structures:** When molecular structures are relevant, set `requires_diagram` to `true` and provide clear diagram instructions
-- **Chemical Equations:** Use proper chemical equation formatting with LaTeX
-- **Periodic Table References:** Include element symbols and atomic numbers where appropriate
-- **Chemical Bonding:** Include Lewis structures, molecular geometry, and bonding types
-- **Diagram Instructions:** For Chemistry diagrams, provide specific instructions including:
-  - Type of diagram (Lewis structure, molecular geometry, orbital diagram, etc.)
-  - Elements and atoms to include
-  - Bond types (single, double, triple)
-  - Electron pairs and lone pairs
-  - Molecular shape and geometry
-  - Color coding if needed (e.g., different colors for different elements)
-  - Scale and orientation requirements
-  - Any specific labels or annotations needed 
+``` 

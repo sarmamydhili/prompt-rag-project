@@ -505,9 +505,7 @@ class GlobalContext:
         if bloom_level in self.bloom_prompt_paths:
             system_path = self.bloom_prompt_paths[bloom_level]['system']
             user_path = self.bloom_prompt_paths[bloom_level]['user']
-            print(f"DEBUG: Found paths for {bloom_level}:")
-            print(f"DEBUG: System path: {system_path}")
-            print(f"DEBUG: User path: {user_path}")
+
             if system_path and user_path:
                 return system_path, user_path
             else:

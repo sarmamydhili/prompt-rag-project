@@ -1,0 +1,114 @@
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the APPLYING level (Level 3) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Applying"
+- "level_num": 3
+- "skill_name": "Applying-<topic>"
+
+Generate exactly **{num_questions} SAT Math Test-level, application-focused multiple-choice questions** for SAT Math Test using the following parameters:
+- **Subject**: SAT Math Test
+- **Subject Area**: {subject_area}
+- **topic**: {skill}
+- **Bloom's Taxonomy Level**: Applying (Level 3)
+- **Difficulty Level**: SAT Math Test Level
+- **Question Type**: Complex, Multi-concept Word Problems
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
+
+- **learning_objectives**: 
+{learning_objectives}
+
+{sample_questions_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on creating SAT Math Test-level questions that test advanced application and implementation skills.
+2. **CRITICAL: Generate questions that:**
+   - Cover ALL learning objectives in the learning objectives above
+   - Each skill must be represented by at least one question
+   - MUST integrate at least 2-3 different mathematical concepts per question
+   - MUST be at SAT Math Test level difficulty
+   - MUST include complex, multi-step word problems
+   - **Approximately 30-40% of questions MUST require diagrams**
+   - For diagram questions, ensure diagrams are essential for solving the mathematical problem
+3. Questions MUST:
+   - Require practical application of multiple interconnected mathematical concepts
+   - Test ability to implement mathematical solutions in real-world scenarios
+   - Include sophisticated mathematical problem-solving and implementation
+   - Be appropriate for SAT Math Test preparation
+   - Include real-world applications and scenarios relevant to SAT Math
+   - Require implementation of mathematical solutions in practical contexts
+   - Align with SAT Math content areas: Heart of Algebra, Problem Solving and Data Analysis, Passport to Advanced Math
+   - For diagram questions:
+     * Include practical application scenarios
+     * Require use of the diagram to solve the mathematical problem
+     * Use appropriate diagram types (process flows, geometric constructions, mathematical visualizations)
+4. Question Distribution:
+   - Total questions: {num_questions}
+   - Questions with diagrams: Approximately 30-40% (round to nearest whole number)
+   - Questions without diagrams: Remaining percentage
+   - Ensure even distribution of diagram types
+5. Ensure each question:
+   - Tests ability to apply mathematical concepts in complex scenarios
+   - Includes integration of multiple mathematical methods and procedures
+   - Requires application of mathematical principles in sophisticated contexts
+   - Covers all major application aspects within {learning_objectives}
+   - Is challenging and requires multiple steps to solve
+   - Has equally plausible answer choices
+   - Is relevant to SAT Math Test format and difficulty level
+6. Each question MUST include:
+   - A complex question stem requiring application of multiple mathematical concepts
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "C")
+   - **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
+   - "level": "Applying" (MUST be exactly this)
+   - "level_num": 3 (MUST be exactly this)
+   - skill - same as topic
+   - "skill_name": "Applying-<Topic>" (MUST start with "Applying-")
+   - Subject (SAT Math Test)
+   - Subject Area
+   - Difficulty level: SAT Math Test Level
+   - Integration of multiple mathematical concepts
+   - Complex word problem structure
+   - Diagram requirements:
+     * "requires_diagram": boolean (true if question needs a diagram)
+     * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
+7. For questions requiring diagrams:
+   - Set "requires_diagram" to true
+   - Provide detailed "diagram_gen_steps" as an array of strings including:
+     * Type of diagram (e.g., "graph", "flowchart", "geometric figure")
+     * Required mathematical elements and their properties
+     * Relationships between mathematical elements
+     * Scale and dimensions
+     * Labels and annotations
+     * Color coding if needed
+     * Any specific mathematical or application requirements
+     * Steps to show the mathematical application process
+   - Ensure diagram steps are clear and specific enough for generation
+   - Include all necessary mathematical notation and labels
+   - Specify any special requirements for visualization
+   - Include steps to show the application of mathematical concepts
+8. **CRITICAL: Each question MUST be:**
+   - At SAT Math Test level difficulty
+   - A complex word problem
+   - Integrate multiple mathematical concepts
+   - Require multiple steps to solve
+   - Include real-world applications relevant to SAT Math
+   - Challenge students' mathematical application skills
+   - Have appropriate diagram requirements if needed
+
+### SAT Math-Specific Instructions:
+When generating SAT Math Test content, ensure to include:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When questions involve geometric figures, set `requires_diagram` to `true` and provide detailed diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **Mathematical Applications:** Focus on applying mathematical concepts to real-world scenarios
+- **Diagram Instructions for SAT Math:** When diagrams are needed, provide specific instructions including:
+  - Diagram type (coordinate plane, geometric figure, number line, etc.)
+  - Mathematical elements to include (points, lines, curves, axes, etc.)
+  - Scale and orientation requirements
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 

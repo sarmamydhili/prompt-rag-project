@@ -90,9 +90,10 @@ class LLMConnections:
         try:
             print('Calling Gemini API for content generation...')
             genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel(model)
-            prompt_content = system_prompt + "\n" + user_prompt
-            response = model.generate_content(contents=[prompt_content])
+            model_instance = genai.GenerativeModel(model)
+            combined_system_prompt = f"You are {model}. {system_prompt}"
+            prompt_content = combined_system_prompt + "\n" + user_prompt
+            response = model_instance.generate_content(contents=[prompt_content])
             print('Gemini API call successful.')
             ai_response_content = response.text
             print('gemini AI response received.')

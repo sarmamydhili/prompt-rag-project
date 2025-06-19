@@ -1,16 +1,16 @@
 ### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
-You MUST generate questions at the ANALYZING level (Level 4) of Bloom's Taxonomy.
+You MUST generate questions at the APPLYING level (Level 3) of Bloom's Taxonomy.
 DO NOT generate questions at any other level.
 EVERY question MUST have:
-- "level": "Analyzing"
-- "level_num": 4
-- "skill_name": "Analyzing-<topic>"
+- "level": "Applying"
+- "level_num": 3
+- "skill_name": "Applying-<topic>"
 
-Generate exactly **{num_questions} AP exam-level, college-level analysis-focused multiple-choice questions** for {subject} using the following parameters:
+Generate exactly **{num_questions} AP exam-level, college-level application-focused multiple-choice questions** for {subject} using the following parameters:
 - **Subject**: {subject}
 - **Subject Area**: {subject_area}
 - **topic**: {skill}
-- **Bloom's Taxonomy Level**: Analyzing (Level 4)
+- **Bloom's Taxonomy Level**: Applying (Level 3)
 - **Difficulty Level**: AP Exam Level
 - **Question Type**: Complex, Multi-concept Word Problems
 
@@ -22,7 +22,7 @@ Generate exactly **{num_questions} AP exam-level, college-level analysis-focused
 **IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
 
 **Instructions:**
-1. Focus on creating AP exam-level questions that test advanced analysis and critical thinking skills.
+1. Focus on creating AP exam-level questions that test advanced application and implementation skills.
 2. **CRITICAL: Generate questions that:**
    - Cover ALL learning objectives in the learning objectives above
    - Each skill must be represented by at least one question
@@ -32,36 +32,36 @@ Generate exactly **{num_questions} AP exam-level, college-level analysis-focused
    - **Approximately 30-40% of questions MUST require diagrams**
    - For diagram questions, ensure diagrams are essential for solving the problem
 3. Questions MUST:
-   - Require deep analysis of multiple interconnected concepts
-   - Test ability to identify complex patterns and relationships
-   - Include sophisticated data interpretation and evaluation
+   - Require practical application of multiple interconnected concepts
+   - Test ability to implement solutions in real-world scenarios
+   - Include sophisticated problem-solving and implementation
    - Be appropriate for college-level and AP exam students
    - Include real-world applications and scenarios
-   - Require synthesis of information from multiple sources
+   - Require implementation of solutions in practical contexts
    - For diagram questions:
-     * Include complex data visualization
-     * Require analysis of the diagram to answer
-     * Use appropriate diagram types (graphs, geometric figures, flowcharts)
+     * Include practical application scenarios
+     * Require use of the diagram to solve the problem
+     * Use appropriate diagram types (process flows, geometric constructions, experimental setups)
 4. Question Distribution:
    - Total questions: {num_questions}
    - Questions with diagrams: Approximately 30-40% (round to nearest whole number)
    - Questions without diagrams: Remaining percentage
    - Ensure even distribution of diagram types
 5. Ensure each question:
-   - Tests ability to break down complex, multi-concept scenarios
-   - Includes analysis of relationships across different concepts
-   - Requires evaluation of evidence in complex contexts
-   - Covers all major analytical aspects within {learning_objectives}
+   - Tests ability to apply concepts in complex scenarios
+   - Includes integration of multiple methods and procedures
+   - Requires application of principles in sophisticated contexts
+   - Covers all major application aspects within {learning_objectives}
    - Is challenging and requires multiple steps to solve
    - Has equally plausible answer choices
 6. Each question MUST include:
-   - A complex question stem requiring analysis of multiple concepts
+   - A complex question stem requiring application of multiple concepts
    - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
    - The correct answer (only the label, e.g., "A")
-   - "level": "Analyzing" (MUST be exactly this)
-   - "level_num": 4 (MUST be exactly this)
+   - "level": "Applying" (MUST be exactly this)
+   - "level_num": 3 (MUST be exactly this)
    - skill - same as topic
-   - "skill_name": "Analyzing-<Topic>" (MUST start with "Analyzing-")
+   - "skill_name": "Applying-<Topic>" (MUST start with "Applying-")
    - Subject
    - Subject Area
    - Difficulty level: AP Exam Level
@@ -79,31 +79,17 @@ Generate exactly **{num_questions} AP exam-level, college-level analysis-focused
      * Scale and dimensions
      * Labels and annotations
      * Color coding if needed
-     * Any specific mathematical or analytical requirements
+     * Any specific mathematical or application requirements
+     * Steps to show the application process
    - Ensure diagram steps are clear and specific enough for generation
    - Include all necessary mathematical notation and labels
    - Specify any special requirements for visualization
+   - Include steps to show the application of concepts
 8. **CRITICAL: Each question MUST be:**
    - At AP exam level difficulty
    - A complex word problem
    - Integrate multiple concepts
    - Require multiple steps to solve
    - Include real-world applications
-   - Challenge students' analytical thinking
+   - Challenge students' application skills
    - Have appropriate diagram requirements if needed
-
-### Chemistry-Specific Instructions:
-When generating Chemistry content, ensure to include:
-- **Chemical Formulas and Notation:** Use proper chemical formulas (e.g., H₂O, CO₂, CH₄) and chemical equations
-- **Molecular Structures:** When questions involve molecular structures, set `requires_diagram` to `true` and provide detailed diagram instructions
-- **Chemical Bonding:** Include Lewis structures, molecular geometry, and bonding types where relevant
-- **Periodic Table Elements:** Use proper element symbols and atomic numbers
-- **Diagram Instructions for Chemistry:** When diagrams are needed, provide specific instructions including:
-  - Diagram type (Lewis structure, molecular geometry, orbital diagram, etc.)
-  - Elements and atoms to be shown
-  - Bond types (single, double, triple bonds)
-  - Electron pairs and lone pairs
-  - Molecular shape and geometry
-  - Color coding for different elements
-  - Scale and orientation
-  - Required labels and annotations

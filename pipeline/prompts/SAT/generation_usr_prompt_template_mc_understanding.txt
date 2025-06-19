@@ -1,0 +1,64 @@
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the UNDERSTANDING level (Level 2) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Understanding"
+- "level_num": 2
+- "skill_name": "Understanding-<topic>"
+
+Generate exactly **{num_questions} comprehension-focused multiple-choice questions** for SAT Math Test using the following parameters:
+- **Subject**: SAT Math Test
+- **Subject Area**: {subject_area}
+- **topic**: {skill}
+- **Bloom's Taxonomy Level**: Understanding (Level 2)
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
+
+- **learning_objectives**: 
+{learning_objectives}
+
+{sample_questions_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on testing comprehension and interpretation of mathematical concepts relevant to SAT Math Test.
+2. **CRITICAL: Generate questions that cover ALL learning objectives in the learning objectives above. Each skill must be represented by at least one question.**
+3. Questions must:
+   - Require interpretation beyond simple recall
+   - Test understanding of relationships between mathematical concepts
+   - Include pattern recognition and trend analysis
+   - Be appropriate for SAT Math Test preparation
+   - Align with SAT Math content areas: Heart of Algebra, Problem Solving and Data Analysis, Passport to Advanced Math
+4. Ensure:
+   - Questions test ability to translate between different mathematical representations
+   - Include interpretation of mathematical data, graphs, or concepts
+   - Require explanation of mathematical relationships
+   - Coverage of all major mathematical concepts within {learning_objectives}
+   - Relevance to SAT Math Test format and difficulty level
+5. Each question MUST include:
+   - A question stem requiring interpretation of mathematical concepts
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "D")
+   - **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
+   - "level": "Understanding" (MUST be exactly this)
+   - "level_num": 2 (MUST be exactly this)
+   - skill - same as topic
+   - "skill_name": "Understanding-<Topic>" (MUST start with "Understanding-")
+   - Subject (SAT Math Test)
+   - Subject Area
+6. If a diagram is required for interpretation, set the `requires_diagram` flag to `true` and provide simple diagram instructions.
+
+### SAT Math-Specific Instructions:
+When generating SAT Math Test content, ensure to include:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When questions involve geometric figures, set `requires_diagram` to `true` and provide detailed diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **Mathematical Relationships:** Focus on understanding connections between different mathematical concepts
+- **Diagram Instructions for SAT Math:** When diagrams are needed, provide specific instructions including:
+  - Diagram type (coordinate plane, geometric figure, number line, etc.)
+  - Elements to include (points, lines, curves, axes, etc.)
+  - Scale and orientation requirements
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 
