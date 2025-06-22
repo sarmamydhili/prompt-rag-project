@@ -76,6 +76,7 @@ Each question must include:
 If a question requires a diagram:
 1. Set "requires_diagram" to true
 2. Provide "diagram_gen_steps" as an array of detailed instructions including:
+   - **CRITICAL: First step MUST reference the question text and explain how the diagram relates to the specific question**
    - Type of diagram (e.g., "graph", "flowchart", "geometric figure")
    - Required mathematical elements and their properties
    - Relationships between mathematical elements
@@ -84,6 +85,7 @@ If a question requires a diagram:
    - Color coding if needed
    - Any specific mathematical or application requirements
    - Steps to show the mathematical application process
+   - **IMPORTANT: Ensure diagram instructions are specific enough to generate a diagram that directly helps answer the question**
 
 ### Example Question Types for SAT Math:
 1. Multi-concept application: "Apply the principles of [mathematical concept A] and [mathematical concept B] to solve this complex scenario..."

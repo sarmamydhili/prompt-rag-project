@@ -1,38 +1,30 @@
-Generate exactly **{num_questions} multiple-choice questions** for {subject} using the following parameters:
+You are to generate exactly **{num_questions} multiple-choice SAT-style questions** using the following parameters:
+
+- **Topic**: {topic}
 - **Subject**: {subject}
 - **Subject Area**: {subject_area}
-- **Topic**: {skill}
+- **Model**: {model}
 
-### Sample Questions from PDF:
-{sample_questions_section}
+### Sample Question (extracted from PDF/text/image):
+{sample_question}
 
-### PDF Content Analysis:
-The sample questions were extracted from a PDF document and include:
-- Question text content
-- Multiple choice options (A, B, C, D)
-- Diagram references or descriptions (if applicable)
-- Mathematical notation and formatting
+### Instructions:
+1. Use the sample question as a reference for tone, format, and difficulty level
+2. Generate {num_questions} **new questions** that:
+   - Assess the same core skill/topic
+   - Explore different but related concepts within the topic
+   - Use similar data presentation methods
+   - Vary in specific scenarios and contexts
+   - Include both direct and indirect applications
+3. For statistics/data analysis:
+   - Include questions about different measures of central tendency
+   - Explore relationships between different statistical measures
+   - Consider data distribution characteristics
+   - Vary the visual representations while maintaining similar complexity
+4. The output must strictly follow the JSON format provided by the system prompt
+5. If a diagram is required, generate valid Mermaid code for it.
+6. Ensure use of LaTeX formatting for math.
+7. **For diagram generation**: When creating diagram instructions, ensure they are comprehensive and include both the mathematical content from the question text and specific visual requirements. The diagram should accurately represent the concepts and data described in the question.
 
-**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters and sample questions.**
-
-**Instructions:**
-1. Generate questions that match the style, complexity, and format of the provided sample questions
-2. Questions must:
-   - Follow the same structure and format as sample questions
-   - Match the complexity level of sample questions
-   - Use similar mathematical notation and representation patterns
-   - Maintain consistent formatting with sample questions
-   - Preserve any diagram requirements or visual complexity from the original questions
-3. Each question MUST include:
-   - A question stem matching the style of sample questions
-   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
-   - The correct answer (only the label, e.g., "A")
-   - skill - same as topic
-   - skill_name (matching the format from sample questions)
-   - Subject
-   - Subject Area
-4. If a diagram is required for interpretation, set the `requires_diagram` flag to true and provide diagram instructions
-5. Maintain the same level of visual complexity as the original questions from the PDF
-
-### Output Format:
-Return a valid JSON object with the specified structure containing all generated questions. 
+Do not ask clarifying questions. Begin generation directly.
+"""
