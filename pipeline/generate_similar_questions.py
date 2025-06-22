@@ -159,13 +159,13 @@ if __name__ == "__main__":
     print(f"📄 Using input file: {file_path}")
 
     # Metadata to inject into the prompt - specific to the histogram question
-    topic = "Data Interpretation"
-    subject = "SAT Math"
-    subject_area = "Statistics"
+    topic = "Kimematics"
+    subject = "AP Physics"
+    subject_area = "Physics"
     
     # LLM parameters - these can be easily modified
-    provider = "openai"  # Options: openai, anthropic, gemini, deepseek
-    model = "gpt-4"      # Model name for the selected provider
+    provider = "anthropic"  # Options: openai, anthropic, gemini, deepseek
+    model = "claude-3-5-sonnet-latest"      # Model name for the selected provider
     temperature = 0.7    # Temperature for generation (0.0 to 1.0)
     num_questions = 1    # Number of questions to generate
 

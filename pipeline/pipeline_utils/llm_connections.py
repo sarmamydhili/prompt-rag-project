@@ -56,6 +56,23 @@ class LLMConnections:
                 output_format="png",
                 moderation="auto",
             )
+            
+            # Print token usage details if available
+            if hasattr(response, 'usage') and response.usage:
+                usage = response.usage
+                print(f"📊 Token Usage Details:")
+                print(f"   Total Tokens: {usage.total_tokens}")
+                print(f"   Input Tokens: {usage.input_tokens}")
+                print(f"   Output Tokens: {usage.output_tokens}")
+                
+                if hasattr(usage, 'input_tokens_details') and usage.input_tokens_details:
+                    details = usage.input_tokens_details
+                    print(f"   Input Token Breakdown:")
+                    print(f"     Text Tokens: {details.text_tokens}")
+                    print(f"     Image Tokens: {details.image_tokens}")
+            else:
+                print("📊 Token usage information not available in response")
+            
             # Get the image data from the response
             b64_data = response.data[0].b64_json
             image_bytes = base64.b64decode(b64_data)

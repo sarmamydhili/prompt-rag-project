@@ -1,4 +1,4 @@
-You are to generate exactly **{num_questions} multiple-choice SAT-style questions** using the following parameters:
+You are to generate exactly **{num_questions} multiple-choice {subject} questions** using the following parameters:
 
 - **Topic**: {topic}
 - **Subject**: {subject}
