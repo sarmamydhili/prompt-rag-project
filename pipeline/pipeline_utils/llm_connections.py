@@ -4,8 +4,13 @@ import google.generativeai as genai
 import anthropic
 import config
 import os
+import requests
 from typing import Dict, Optional
 from dotenv import load_dotenv
+from datetime import datetime
+from PIL import Image
+import base64
+from io import BytesIO
 
 # Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -26,6 +31,47 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 class LLMConnections:
     def __init__(self, config):
         self.task_config = config
+
+    def generate_diagram_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams"):
+        """
+        Generates an image using GPT-1 , downloads it, and saves it to a specified directory.
+        Args:
+            prompt: The text prompt to send to GPT-1.
+            size: The desired size of the image (e.g., "1024x1024").
+            output_dir: The directory where the generated image will be saved.
+        Returns:
+            The file path of the saved image or None if an error occurred.
+        """
+        try:
+            print(f"🖼️  Generating GPT-1 image from prompt:\n{prompt}\n")
+            client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+            
+            response = client.images.generate(
+                model="gpt-image-1",
+                prompt=prompt,
+                background="auto",
+                n=1,
+                quality="high",
+                size="1024x1024",
+                output_format="png",
+                moderation="auto",
+            )
+            # Get the image data from the response
+            b64_data = response.data[0].b64_json
+            image_bytes = base64.b64decode(b64_data)
+
+            # Create output directory if it doesn't exist
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Save the image to the specified output directory
+            img = Image.open(BytesIO(image_bytes))
+            filename = os.path.join(output_dir, "generated_diagram.png")
+            img.save(filename)
+            print(f"✅ Image saved to {filename}")
+
+        except Exception as e:
+            print(f"❌ Error during GPT-1 image generation or download: {e}")
+            return None
 
     def call_llm_api(self, provider: str, system_prompt: str, user_prompt: str, model: Optional[str] = None, temperature: Optional[float] = None) -> Optional[str]:
         """

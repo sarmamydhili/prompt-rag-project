@@ -77,6 +77,7 @@ Generate exactly **{num_questions} SAT Math Test-level, application-focused mult
 7. For questions requiring diagrams:
    - Set "requires_diagram" to true
    - Provide detailed "diagram_gen_steps" as an array of strings including:
+     * **CRITICAL: First step MUST reference the question text and explain how the diagram relates to the specific question**
      * Type of diagram (e.g., "graph", "flowchart", "geometric figure")
      * Required mathematical elements and their properties
      * Relationships between mathematical elements
@@ -89,6 +90,7 @@ Generate exactly **{num_questions} SAT Math Test-level, application-focused mult
    - Include all necessary mathematical notation and labels
    - Specify any special requirements for visualization
    - Include steps to show the application of mathematical concepts
+   - **IMPORTANT: Ensure diagram instructions are specific enough to generate a diagram that directly helps answer the question**
 8. **CRITICAL: Each question MUST be:**
    - At SAT Math Test level difficulty
    - A complex word problem
