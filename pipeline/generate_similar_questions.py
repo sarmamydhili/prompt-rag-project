@@ -6,6 +6,12 @@ from pdf2image import convert_from_path
 from datetime import datetime
 from pipeline_utils.llm_connections import LLMConnections
 import config
+from bson import ObjectId
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # === CONFIG ===
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), "prompts/similar")
@@ -115,14 +121,85 @@ def save_output_json(data):
         json.dump(data, f, indent=2)
     print(f"✅ Saved to {filepath}")
 
+def get_connection_doc_db():
+    """
+    Get connection to the document database.
+    This function should be implemented based on your database connection setup.
+    """
+    try:
+        from pymongo import MongoClient
+        # Update these connection details with your actual MongoDB setup
+        client = MongoClient('mongodb://localhost:27017/')
+        return client['adaptive_learning_docs']  # Update with your database name
+    except ImportError:
+        logger.error("pymongo not installed. Please install it with: pip install pymongo")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        return None
+
+def get_question_by_id(doc_id):
+    """
+    Retrieves the complete question document from the questions collection for a given doc_id.
+    
+    Args:
+        doc_id: The document ID (can be string or ObjectId)
+        
+    Returns:
+        dict: The question document or None if not found
+    """
+    logger.info(f"Fetching question document for doc_id: {doc_id}")
+    try:
+        db = get_connection_doc_db()
+        if db is None:
+            logger.error("Database connection failed")
+            return None
+            
+        questions_collection = db['dryrun_questions']  # MongoDB collection
+
+        # Determine if the doc_id is an ObjectId or an integer
+        if isinstance(doc_id, str):
+            try:
+                doc_id = ObjectId(doc_id)
+                logger.debug(f"Converted doc_id to ObjectId: {doc_id}")
+            except Exception as e:
+                logger.error(f"Invalid doc_id format: {doc_id}, Error: {e}")
+                return None
+
+        query = {"_id": doc_id}
+
+        # Retrieve the document using the _id
+        document = questions_collection.find_one(query)
+        if not document:
+            logger.warning(f"Document with doc_id {doc_id} not found.")
+            return None
+
+        # Convert ObjectId to string for JSON serialization
+        if "_id" in document:
+            document["_id"] = str(document["_id"])
+
+        logger.info(f"Question document retrieved successfully for doc_id: {doc_id}")
+        return document
+
+    except Exception as e:
+        logger.error(f"Error fetching question document for doc_id {doc_id}: {e}")
+        return None
+
 def generate_and_save_diagrams(result_data, base_output_dir):
     """
     Checks for diagram generation steps in the result and calls GPT-1 to create them.
+    This function is specifically for LLM results with multiple questions.
     Args:
         result_data: The JSON data returned from the LLM.
         base_output_dir: The root directory to save diagrams in.
     """
+    # Add null check for result_data
+    if result_data is None:
+        logger.error("Result data is None, cannot generate diagrams")
+        return
+        
     if 'questions' not in result_data:
+        logger.warning("No 'questions' key found in result_data")
         return
 
     llm_connections = LLMConnections(config={})  # Instantiate for GPT-1
@@ -136,6 +213,7 @@ def generate_and_save_diagrams(result_data, base_output_dir):
             question_text = question.get('question', '')
             diagram_steps = " ".join(question['diagram_gen_steps'])
             gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps}"
+            #gpt1_prompt = f"Question: {question_text}"
             
             llm_connections.generate_diagram_openai(
                 prompt=gpt1_prompt,
@@ -146,6 +224,51 @@ def generate_and_save_diagrams(result_data, base_output_dir):
             print(f"⚠️  Question {i+1} requires diagram but no diagram generation steps provided")
         else:
             print(f"📝 Question {i+1} does not require a diagram")
+
+def process_single_question_diagram(question_doc, base_output_dir):
+    """
+    Process a single question document from database for diagram generation.
+    This function is specifically for database documents.
+    """
+    logger.info(f"Processing question document: {question_doc.get('_id')}")
+    
+    # Print the document structure for debugging
+    print("📄 Document structure:")
+    for key, value in question_doc.items():
+        if key == '_id':
+            print(f"  {key}: {value}")
+        elif isinstance(value, str) and len(value) > 100:
+            print(f"  {key}: {value[:100]}...")
+        else:
+            print(f"  {key}: {value}")
+    
+    # Check if the question requires a diagram
+    requires_diagram = question_doc.get('requires_diagram', False)
+    diagram_steps = question_doc.get('diagram_gen_steps', [])
+    question_text = question_doc.get('question_text', '') or question_doc.get('question', '')
+    
+    if requires_diagram and diagram_steps:
+        print(f"🎨 Found diagram instructions. Generating with GPT-1...")
+        
+        llm_connections = LLMConnections(config={})
+        diagram_output_dir = os.path.join(base_output_dir)
+        
+        # Concatenate question text with diagram generation steps
+        diagram_steps_text = " ".join(diagram_steps) if isinstance(diagram_steps, list) else str(diagram_steps)
+        gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps_text}"
+        
+        try:
+            llm_connections.generate_diagram_openai(
+                prompt=gpt1_prompt,
+                output_dir=diagram_output_dir
+            )
+            print(f"✅ Diagram saved to {diagram_output_dir}")
+        except Exception as e:
+            print(f"❌ Failed to generate diagram: {e}")
+    elif requires_diagram and not diagram_steps:
+        print(f"⚠️  Question requires diagram but no diagram generation steps provided")
+    else:
+        print(f"📝 Question does not require a diagram")
 
 def generate_similar_questions_from_file():
     """
@@ -204,4 +327,27 @@ def generate_similar_questions_from_file():
 # === MAIN ===
 
 if __name__ == "__main__":
-    generate_similar_questions_from_file()
+    # Uncomment the line below to debug database structure
+    # check_database_structure()
+    
+    # Uncomment the line below to list available documents
+    # list_available_documents(10)
+    
+    # Uncomment the line below to run the original file-based generation
+    # generate_similar_questions_from_file()
+    
+    # Try to get a question document by ID
+    question_document = get_question_by_id("683bdeb1aa04ac86b7624a99")
+    
+    if question_document:
+        print("✅ Successfully retrieved question document:")
+        print(f"ID: {question_document.get('_id')}")
+        print(f"Question: {question_document.get('question_text', 'No text')[:200]}...")
+        # Direct call to process single question diagram for database documents
+        process_single_question_diagram(question_document, OUTPUT_DIR)
+    else:
+        print("❌ Failed to retrieve question document")
+        print("\n🔍 Debugging options:")
+        print("1. Uncomment 'check_database_structure()' to see available collections")
+        print("2. Uncomment 'list_available_documents(10)' to see available document IDs")
+        print("3. Update the document ID to one that exists in your database")
