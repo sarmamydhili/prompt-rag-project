@@ -142,12 +142,15 @@ def generate_and_save_diagrams(result_data, base_output_dir):
                 output_dir=diagram_output_dir
             )
             print(f"✅ Diagram for question {i+1} saved to {diagram_output_dir}")
-            
-            
+        elif question.get('requires_diagram') and not question.get('diagram_gen_steps'):
+            print(f"⚠️  Question {i+1} requires diagram but no diagram generation steps provided")
+        else:
+            print(f"📝 Question {i+1} does not require a diagram")
 
-# === MAIN ===
-
-if __name__ == "__main__":
+def generate_similar_questions_from_file():
+    """
+    Main method to generate similar questions from an input file
+    """
     # Use the specified input file with proper path handling
     file_path = os.path.join(os.getcwd(), INPUT_DIR, "input_question.jpg")
     
@@ -164,16 +167,18 @@ if __name__ == "__main__":
     subject_area = "Physics"
     
     # LLM parameters - these can be easily modified
-    provider = "anthropic"  # Options: openai, anthropic, gemini, deepseek
-    model = "claude-3-5-sonnet-latest"      # Model name for the selected provider
-    temperature = 0.7    # Temperature for generation (0.0 to 1.0)
+    provider = "openai"  # Options: openai, anthropic, gemini, deepseek
+    model = "gpt-4"      # Model name for the selected provider
+    temperature = 0.7   # Temperature for generation (0.0 to 1.0)
     num_questions = 1    # Number of questions to generate
 
     try:
         print("📄 Reading question from input file...")
         sample_question = extract_single_question(file_path)
+        print('***sample_question***', sample_question)
         
         print(f"🤖 Generating {num_questions} similar questions using {provider} ({model})...")
+  
         result = generate_question(
             sample_question, 
             topic, 
@@ -194,3 +199,9 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ An error occurred: {str(e)}")
         exit(1)
+
+
+# === MAIN ===
+
+if __name__ == "__main__":
+    generate_similar_questions_from_file()

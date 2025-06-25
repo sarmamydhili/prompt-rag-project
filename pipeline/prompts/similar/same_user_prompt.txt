@@ -1,0 +1,47 @@
+You are to generate exactly **{num_questions} multiple-choice {subject} questions** using the following parameters:
+
+- **Topic**: {topic}
+- **Subject**: {subject}
+- **Subject Area**: {subject_area}
+- **Model**: {model}
+
+### Sample Question (extracted from PDF/text/image):
+{sample_question}
+
+### Instructions:
+1. Use the sample question as a **template** for generating **structurally identical** questions
+2. Generate {num_questions} **new questions** that are **exactly the same** in:
+   - **Structure and format**
+   - **Complexity level**
+   - **Mathematical concepts and formulas**
+   - **Problem-solving approach**
+   - **Visual presentation methods**
+   - **Answer choice structure**
+3. **Vary ONLY the numerical values** while maintaining:
+   - **Same mathematical relationships**
+   - **Proportional scaling** of quantities
+   - **Realistic and logical values**
+   - **Same units but different magnitudes**
+   - **Similar angles, coefficients, or parameters**
+4. **Number variation examples**:
+   - If original has 6.0 kg block, use 8.0 kg, 10.0 kg, etc.
+   - If original has 100 N force, use 120 N, 150 N, 200 N, etc.
+   - If original has 60° angle, use 55°, 65°, 70°, etc.
+   - If original has μk = 0.30, use 0.25, 0.35, 0.40, etc.
+5. The output must strictly follow the JSON format provided by the system prompt
+6. If a diagram is required, generate valid Mermaid code for it.
+7. Ensure use of LaTeX formatting for math.
+8. **For diagram generation**: When creating diagram instructions, ensure they are comprehensive and include both the mathematical content from the question text and specific visual requirements. The diagram should accurately represent the concepts and data described in the question.
+
+### Key Requirements:
+- **Maintain identical complexity**: The new questions should be neither easier nor harder than the original
+- **Keep same answer structure**: All answer choices should follow the same logical pattern
+- **Preserve mathematical relationships**: If original uses F = ma, keep using F = ma with different values
+- **Scale appropriately**: Ensure the new numbers work together mathematically
+- **Use realistic values**: Choose numbers that make sense in the given context
+- **CRITICAL DIAGRAM LOGIC**: 
+  - If the question requires a diagram, set `requires_diagram` to `true` and provide detailed `diagram_gen_steps`
+  - If no diagram is needed, set `requires_diagram` to `false` and leave `diagram_gen_steps` as an empty array `[]`
+  - NEVER provide `diagram_gen_steps` when `requires_diagram` is `false`
+
+Do not ask clarifying questions. Begin generation directly. 

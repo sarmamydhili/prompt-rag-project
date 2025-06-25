@@ -90,6 +90,110 @@ class LLMConnections:
             print(f"❌ Error during GPT-1 image generation or download: {e}")
             return None
 
+    def generate_question_from_image_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams"):
+        """
+        Generates a question from an image using GPT-1 , downloads it, and saves it to a specified directory.
+        """
+
+        client = OpenAI()
+        image_url_path="https://i.postimg.cc/jdvtSwQV/input-question.jpg"
+        #prompt = "Can you extract the question and image details from AP Physics Question Image?"    
+        prompt = "Can you generate similar question and image as the one in the image?"
+        response = client.responses.create(
+            model="gpt-4.1",
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                            {
+                            "type": "input_text", "text": prompt
+                            },
+                            {
+                            "type": "input_image", "image_url": image_url_path
+                            }
+                    ]
+                }
+            ]
+        )
+        print('*****Raw response*****', response)
+        print('\n*****************************')
+        # Extract and print the question and diagram details
+        if response.output and len(response.output) > 0:
+            output_message = response.output[0]
+            if output_message.content and len(output_message.content) > 0:
+                extracted_text = output_message.content[0].text
+                
+                # Parse and separate question and diagram details
+                question_text = ""
+                diagram_details = ""
+                
+                # Split by the separator "---"
+                parts = extracted_text.split("---")
+                
+                if len(parts) >= 2:
+                    # Extract question part (before "---")
+                    question_part = parts[0].strip()
+                    if "**Extracted Question:**" in question_part:
+                        question_text = question_part.replace("**Extracted Question:**", "").strip()
+                    
+                    # Extract diagram details part (after "---")
+                    diagram_part = parts[1].strip()
+                    if "**Image Details:**" in diagram_part:
+                        diagram_details = diagram_part.replace("**Image Details:**", "").strip()
+                else:
+                    # If no separator found, treat entire text as question
+                    question_text = extracted_text.strip()
+                
+                # Print question text separately
+                print("=" * 80)
+                print("📝 EXTRACTED QUESTION TEXT")
+                print("=" * 80)
+                print(question_text)
+                print()
+                
+                # Print diagram details separately
+                if diagram_details:
+                    print("=" * 80)
+                    print("🖼️  DIAGRAM DETAILS")
+                    print("=" * 80)
+                    print(diagram_details)
+                    print("=" * 80)
+                else:
+                    print("=" * 80)
+                    print("🖼️  DIAGRAM DETAILS")
+                    print("=" * 80)
+                    print("No diagram details found in the response.")
+                    print("=" * 80)
+                
+                return extracted_text
+            else:
+                print("❌ No content found in response")
+                return None
+        else:
+            print("❌ No output found in response")
+            return None
+
+    def generate_image_from_image_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams"):
+        client = OpenAI()
+        prompt = """
+        Can you generate a similar question and image as the one in the image?
+        """
+
+        result = client.images.edit(
+            model="gpt-image-1",
+            image=[
+                open("data/input_questions/input_question.jpg", "rb")  
+            ],
+            prompt=prompt
+        )
+
+        image_base64 = result.data[0].b64_json
+        image_bytes = base64.b64decode(image_base64)
+
+        # Save the image to a file
+        with open("output_question.png", "wb") as f:
+            f.write(image_bytes)
+   
     def call_llm_api(self, provider: str, system_prompt: str, user_prompt: str, model: Optional[str] = None, temperature: Optional[float] = None) -> Optional[str]:
         """
         Call the appropriate LLM API based on the provider
@@ -255,3 +359,159 @@ class LLMConnections:
 # Usage
 # llm_connections = LLMConnections(config)
 # response = llm_connections.call_llm_api(provider='openai', system_prompt='...', user_prompt='...') 
+
+
+def test_image_analysis():
+    """
+    Test method for generate_question_from_image_openai functionality
+    """
+    print("=" * 50)
+    print("TEST: Image Analysis")
+    print("=" * 50)
+    
+    # Create a simple config for testing
+    test_config = {
+        "openai_llm_model": "gpt-4o",
+        "anthropic_llm_model": "claude-3-5-sonnet-20241022",
+        "gemini_llm_model": "gemini-1.5-pro",
+        "deepseek_llm_model": "deepseek-chat",
+        "grok_llm_model": "grok-3"
+    }
+    
+    # Initialize LLMConnections
+    llm_connections = LLMConnections(test_config)
+    
+    prompt = "Can you extract the question and image details from AP Physics Question Image?"
+    size = "1024x1024"
+    output_dir = "generated_diagrams"
+    
+    print("🚀 Starting image analysis...")
+    result = llm_connections.generate_question_from_image_openai(
+        prompt=prompt,
+        size=size,
+        output_dir=output_dir
+    )
+    
+    if result:
+        print(f"\n🎯 Analysis Result:\n{result}")
+    else:
+        print("❌ Failed to analyze image")
+    
+    return result
+
+
+def test_image_generation_from_image():
+    """
+    Test method for generate_image_from_image_openai functionality
+    """
+    print("=" * 50)
+    print("TEST: Image Generation from Image")
+    print("=" * 50)
+    
+    # Create a simple config for testing
+    test_config = {
+        "openai_llm_model": "gpt-4o",
+        "anthropic_llm_model": "claude-3-5-sonnet-20241022",
+        "gemini_llm_model": "gemini-1.5-pro",
+        "deepseek_llm_model": "deepseek-chat",
+        "grok_llm_model": "grok-3"
+    }
+    
+    # Initialize LLMConnections
+    llm_connections = LLMConnections(test_config)
+    
+    image_prompt = "Can you generate a similar question and image as the one in the image?"
+    image_size = "1024x1024"
+    image_output_dir = "generated_images"
+    
+    print("🎨 Starting image generation from image...")
+    try:
+        llm_connections.generate_image_from_image_openai(
+            prompt=image_prompt,
+            size=image_size,
+            output_dir=image_output_dir
+        )
+        print("✅ Image generation completed successfully!")
+        print("📁 Check 'output_question.png' for the generated image")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to generate image: {e}")
+        print("💡 Make sure 'data/input_questions/input_question.jpg' exists")
+        return False
+
+
+def test_diagram_generation():
+    """
+    Test method for generate_diagram_openai functionality
+    """
+    print("=" * 50)
+    print("TEST: Diagram Generation")
+    print("=" * 50)
+    
+    # Create a simple config for testing
+    test_config = {
+        "openai_llm_model": "gpt-4o",
+        "anthropic_llm_model": "claude-3-5-sonnet-20241022",
+        "gemini_llm_model": "gemini-1.5-pro",
+        "deepseek_llm_model": "deepseek-chat",
+        "grok_llm_model": "grok-3"
+    }
+    
+    # Initialize LLMConnections
+    llm_connections = LLMConnections(test_config)
+    
+    diagram_prompt = "Create a diagram showing the forces acting on a pendulum"
+    diagram_size = "1024x1024"
+    diagram_output_dir = "generated_diagrams"
+    
+    print("📊 Starting diagram generation...")
+    try:
+        result = llm_connections.generate_diagram_openai(
+            prompt=diagram_prompt,
+            size=diagram_size,
+            output_dir=diagram_output_dir
+        )
+        if result:
+            print("✅ Diagram generation completed successfully!")
+            print(f"📁 Diagram saved to: {result}")
+        else:
+            print("❌ Failed to generate diagram")
+        return result
+    except Exception as e:
+        print(f"❌ Failed to generate diagram: {e}")
+        return None
+
+
+def main():
+    """
+    Main method to demonstrate the functionality
+    """
+    print("🧪 LLM Connections Test Suite")
+    print("Choose a test to run:")
+    print("1. Image Analysis")
+    print("2. Image Generation from Image")
+    print("3. Diagram Generation")
+    print("4. Run All Tests")
+    
+    # For now, run all tests
+    # You can modify this to accept user input or call specific tests
+    #print("\n" + "=" * 60)
+    #print("RUNNING ALL TESTS")
+    print("=" * 60)
+    
+    # Test 1: Image Analysis
+    #test_image_analysis()
+    
+    # Test 2: Image Generation from Image
+    test_image_generation_from_image()
+    
+    # Test 3: Diagram Generation
+    test_diagram_generation()
+    
+    print("\n" + "=" * 60)
+    print("ALL TESTS COMPLETED")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main() 
