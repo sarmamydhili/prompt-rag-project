@@ -225,7 +225,7 @@ def generate_and_save_diagrams(result_data, base_output_dir):
         else:
             print(f"📝 Question {i+1} does not require a diagram")
 
-def process_single_question_diagram(question_doc, base_output_dir):
+def generate_diagram_for_question(question_doc, base_output_dir):
     """
     Process a single question document from database for diagram generation.
     This function is specifically for database documents.
@@ -258,11 +258,16 @@ def process_single_question_diagram(question_doc, base_output_dir):
         gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps_text}"
         
         try:
+            # Generate diagram with custom filename
+            doc_id = str(question_doc.get('_id', ''))
+            filename = f"diagram_{doc_id}.png"
+            
             llm_connections.generate_diagram_openai(
                 prompt=gpt1_prompt,
-                output_dir=diagram_output_dir
+                output_dir=diagram_output_dir,
+                filename=filename
             )
-            print(f"✅ Diagram saved to {diagram_output_dir}")
+            print(f"✅ Diagram saved as {filename} in {diagram_output_dir}")
         except Exception as e:
             print(f"❌ Failed to generate diagram: {e}")
     elif requires_diagram and not diagram_steps:
@@ -323,6 +328,84 @@ def generate_similar_questions_from_file():
         print(f"❌ An error occurred: {str(e)}")
         exit(1)
 
+def generate_diagram_for_question_id(question_id):
+    question_document = get_question_by_id(question_id)
+    
+    if question_document:
+        print("✅ Successfully retrieved question document:")
+        print(f"ID: {question_document.get('_id')}")
+        print(f"Question: {question_document.get('question_text', 'No text')[:200]}...")
+        
+        # Use the same output directory as generate_diagrams_for_skill
+        skill_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
+        
+        # Ensure the output directory exists
+        os.makedirs(skill_output_dir, exist_ok=True)
+        
+        # Direct call to process single question diagram for database documents
+        generate_diagram_for_question(question_document, skill_output_dir)
+    else:
+        print("❌ Failed to retrieve question document")
+        print("\n🔍 Debugging options:")
+        print("1. Uncomment 'check_database_structure()' to see available collections")
+        print("2. Uncomment 'list_available_documents(10)' to see available document IDs")
+        print("3. Update the document ID to one that exists in your database")
+
+def generate_diagrams_for_skill(skill_name):
+    """
+    Generate diagrams for all questions in a specific skill.
+    
+    Args:
+        skill_name: The skill name to filter questions by (e.g., "Integration and Accumulation of Change")
+    """
+    logger.info(f"Generating diagrams for skill: {skill_name}")
+    
+    try:
+        db = get_connection_doc_db()
+        if db is None:
+            logger.error("Database connection failed")
+            return
+            
+        questions_collection = db['dryrun_questions']
+        
+        # Query for questions with the specified skill and requires_diagram = true
+        query = {
+            "skill": skill_name,
+            "requires_diagram": True
+        }
+        
+        # Find all matching documents
+        documents = list(questions_collection.find(query))
+        
+        if not documents:
+            logger.warning(f"No questions found for skill '{skill_name}' that require diagrams")
+            return
+            
+        logger.info(f"Found {len(documents)} questions for skill '{skill_name}' that require diagrams")
+        
+        # Set the output directory for skill-based diagrams
+        skill_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
+        
+        # Ensure the output directory exists
+        os.makedirs(skill_output_dir, exist_ok=True)
+        
+        # Process each question
+        for i, question_doc in enumerate(documents, 1):
+            print(f"\n{'='*60}")
+            print(f"Processing question {i}/{len(documents)}")
+            print(f"{'='*60}")
+            
+            # Convert ObjectId to string for JSON serialization
+            if "_id" in question_doc:
+                question_doc["_id"] = str(question_doc["_id"])
+            
+            # Generate diagram for this question
+            generate_diagram_for_question(question_doc, skill_output_dir)
+            
+        logger.info(f"✅ Completed diagram generation for {len(documents)} questions in skill '{skill_name}'")
+        
+    except Exception as e:
+        logger.error(f"Error generating diagrams for skill '{skill_name}': {e}")
 
 # === MAIN ===
 
@@ -337,17 +420,6 @@ if __name__ == "__main__":
     # generate_similar_questions_from_file()
     
     # Try to get a question document by ID
-    question_document = get_question_by_id("683bdeb1aa04ac86b7624a99")
+    #generate_diagram_for_question_id("6852442133434e3e748553af")
+    generate_diagrams_for_skill("Fluids")
     
-    if question_document:
-        print("✅ Successfully retrieved question document:")
-        print(f"ID: {question_document.get('_id')}")
-        print(f"Question: {question_document.get('question_text', 'No text')[:200]}...")
-        # Direct call to process single question diagram for database documents
-        process_single_question_diagram(question_document, OUTPUT_DIR)
-    else:
-        print("❌ Failed to retrieve question document")
-        print("\n🔍 Debugging options:")
-        print("1. Uncomment 'check_database_structure()' to see available collections")
-        print("2. Uncomment 'list_available_documents(10)' to see available document IDs")
-        print("3. Update the document ID to one that exists in your database")

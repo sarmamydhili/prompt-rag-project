@@ -32,13 +32,14 @@ class LLMConnections:
     def __init__(self, config):
         self.task_config = config
 
-    def generate_diagram_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams"):
+    def generate_diagram_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams", filename: str = None):
         """
         Generates an image using GPT-1 , downloads it, and saves it to a specified directory.
         Args:
             prompt: The text prompt to send to GPT-1.
             size: The desired size of the image (e.g., "1024x1024").
             output_dir: The directory where the generated image will be saved.
+            filename: Custom filename for the image (optional). If not provided, uses "generated_diagram.png".
         Returns:
             The file path of the saved image or None if an error occurred.
         """
@@ -82,9 +83,19 @@ class LLMConnections:
             
             # Save the image to the specified output directory
             img = Image.open(BytesIO(image_bytes))
-            filename = os.path.join(output_dir, "generated_diagram.png")
-            img.save(filename)
-            print(f"✅ Image saved to {filename}")
+            
+            # Use custom filename if provided, otherwise use default
+            if filename:
+                # Ensure filename has .png extension
+                if not filename.endswith('.png'):
+                    filename += '.png'
+                filepath = os.path.join(output_dir, filename)
+            else:
+                filepath = os.path.join(output_dir, "generated_diagram.png")
+                
+            img.save(filepath)
+            print(f"✅ Image saved to {filepath}")
+            return filepath
 
         except Exception as e:
             print(f"❌ Error during GPT-1 image generation or download: {e}")
