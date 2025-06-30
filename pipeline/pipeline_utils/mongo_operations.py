@@ -8,6 +8,7 @@ class MongoOperations:
         self.mongo_client, self.mongo_db = get_mongo_connection()
         self.questions_collection = self.mongo_db[DBConfig.MONGO_QUESTIONS_COLLECTION]
         self.course_framework_collection = self.mongo_db[DBConfig.MONGO_COURSE_FRAMEWORK_COLLECTION]
+        self.output_collection = self.mongo_db[DBConfig.MONGO_OUTPUT_COLLECTION]
 
     def get_questions_by_skill(self, skill_name: Optional[str] = None, skill: Optional[str] = None, limit: Optional[int] = None) -> List[Dict]:
         """
@@ -49,19 +50,55 @@ class MongoOperations:
 
     def save_question(self, question: Dict) -> str:
         """
-        Save a question to MongoDB
+        Save a question to MongoDB test_questions collection
         Args:
             question: Dictionary containing question data
         Returns:
             MongoDB document ID
         """
-        result = self.questions_collection.insert_one(question)
+        result = self.mongo_db['test_questions'].insert_one(question)
         return str(result.inserted_id)
 
-    def close(self):
-        """Close the MongoDB connection"""
-        if self.mongo_client:
-            self.mongo_client.close()
+    def get_course_framework_by_subject(self, subject: str) -> Optional[Dict]:
+        """
+        Get the complete course framework for a specific subject from MongoDB.
+        
+        Args:
+            subject (str): The subject name (e.g., "AP Physics", "AP Calculus BC")
+            
+        Returns:
+            Optional[Dict]: Complete course framework document or None if not found
+        """
+        try:
+            print(f"Fetching course framework for subject: '{subject}'")
+            
+            # Query for the specific subject
+            framework_doc = self.course_framework_collection.find_one({"subject": subject})
+            
+            if framework_doc:
+                print(f"✓ Found course framework for {subject}")
+                print(f"  - Units: {len(framework_doc.get('units', []))}")
+                
+                # Print unit information for debugging
+                for unit in framework_doc.get('units', []):
+                    unit_name = unit.get('unit', 'Unknown')
+                    weightage = unit.get('weightage_percent', 0)
+                    topics_count = len(unit.get('topics', []))
+                    print(f"    - {unit_name}: {weightage}% weightage, {topics_count} topics")
+                
+                return framework_doc
+            else:
+                print(f"✗ No course framework found for subject: '{subject}'")
+                
+                # List available subjects for debugging
+                available_subjects = self.course_framework_collection.distinct("subject")
+                print(f"Available subjects: {available_subjects}")
+                
+                return None
+                
+        except Exception as e:
+            print(f"Error fetching course framework for subject '{subject}': {str(e)}")
+            return None
 
     def inspect_course_framework(self):
         """
@@ -195,4 +232,9 @@ class MongoOperations:
         except Exception as e:
             print(f"Error fetching unit objectives: {str(e)}")
             # print(f"DEBUG: Full error details:", exc_info=True)
-            return [] 
+            return []
+
+    def close(self):
+        """Close the MongoDB connection"""
+        if self.mongo_client:
+            self.mongo_client.close() 

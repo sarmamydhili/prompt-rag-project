@@ -1,0 +1,118 @@
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST assign an appropriate Bloom's Taxonomy level to each question you generate.
+Choose ONLY from: Analyzing, Applying, or Evaluating.
+Assign the appropriate level number (3-5) based on the cognitive complexity required.
+EVERY question MUST have:
+- "level": "[assigned_bloom_level]"
+- "level_num": [assigned_level_number]
+- "skill_name": "[assigned_bloom_level]-{unit_name}"
+
+Generate exactly **{num_questions} AP exam-level, college-level multiple-choice question(s)** for {subject} using the following parameters:
+- **Subject**: {subject}
+- **Subject Area**: {subject_area}
+- **Unit**: {unit_name}
+- **unit**: {unit_name}
+- **Number of Questions**: {num_questions}
+- **Bloom's Taxonomy Level**: [You will assign this based on the cognitive complexity required - ONLY Analyzing, Applying, or Evaluating]
+- **Difficulty Level**: AP Exam Level
+- **Question Type**: Complex, Multi-concept Word Problems
+
+- **Learning Objectives**: 
+{learning_objectives}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on creating AP exam-level questions that test advanced cognitive skills and implementation skills.
+2. **CRITICAL: Generate questions that:**
+   - Cover ALL learning objectives in the learning objectives above
+   - MUST integrate at least 2-3 different concepts per question
+   - MUST be at AP exam level difficulty
+   - MUST include complex, multi-step word problems
+   - **Approximately 30-40% of questions MUST require diagrams**
+   - For diagram questions, ensure diagrams are essential for solving the problem
+3. Questions MUST:
+   - Require the assigned cognitive level of multiple interconnected concepts
+   - Test ability to perform at the assigned cognitive level in real-world scenarios
+   - Include sophisticated problem-solving and the assigned cognitive level
+   - Be appropriate for college-level and AP exam students
+   - Include real-world applications and scenarios
+   - Require performance at the assigned cognitive level in practical contexts
+4. Each question MUST include:
+   - A complex question stem requiring the assigned cognitive level of multiple concepts
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "A", "B", "C", or "D") - **IMPORTANT: Distribute correct answers evenly across A, B, C, D options**
+   - "level": "[assigned_bloom_level]" (assigned by you - ONLY Analyzing, Applying, or Evaluating)
+   - "level_num": [assigned_level_number] (assigned by you - ONLY 3, 4, or 5)
+   - skill - same as topic: {unit_name}
+   - "skill_name": "[assigned_bloom_level]-{unit_name}" (MUST start with "[assigned_bloom_level]-")
+   - Subject: {subject}
+   - Subject Area: {subject_area}
+   - Difficulty level: AP Exam Level
+   - Integration of multiple concepts
+   - Complex word problem structure
+   - Diagram requirements:
+     * "requires_diagram": boolean (true if question needs a diagram)
+     * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
+5. **CRITICAL: Each question MUST be:**
+   - At AP exam level difficulty
+   - A complex word problem
+   - Integrate multiple concepts
+   - Require multiple steps to solve
+   - Include real-world applications
+   - Challenge students' cognitive skills at the assigned level
+   - Have appropriate diagram requirements if needed
+
+### CRITICAL: Correct Answer Distribution:
+- **DO NOT always choose "A" as the correct answer**
+- **Distribute correct answers evenly across A, B, C, D options**
+- **For {num_questions} questions, aim for approximately equal distribution:**
+  - ~25% of questions should have "A" as correct answer
+  - ~25% of questions should have "B" as correct answer  
+  - ~25% of questions should have "C" as correct answer
+  - ~25% of questions should have "D" as correct answer
+- **Make all options equally plausible** - the correct answer should not be obvious
+
+### Subject-Specific Instructions:
+When generating {subject} content, ensure to include:
+- **Mathematical Formulas:** Use proper mathematical notation for equations
+- **Units and Measurements:** Include appropriate units and unit conversions
+- **Subject-Specific Notation:** Use proper notation for the subject area
+- **Diagrams:** When questions involve complex systems, set `requires_diagram` to `true` and provide detailed diagram instructions
+- **Real-world Applications:** Include practical applications and scenarios relevant to the subject
+- **Diagram Instructions:** When diagrams are needed, provide specific instructions including:
+  - Diagram type (appropriate for the subject)
+  - Required elements and their properties
+  - Relationships between elements
+  - Labels and annotations
+  - Scale and dimensions
+  - Color coding if needed
+  - Required labels and annotations
+
+### Expected JSON Output:
+Return a JSON object with the following structure:
+
+{{
+  "questions": [
+    {{
+      "model_name": "{provider}",
+      "question": "Question text here...",
+      "multiple_choices": [
+        "A. Option A text",
+        "B. Option B text",
+        "C. Option C text",
+        "D. Option D text"
+      ],
+      "correct_answer": "A",
+      "level": "[assigned_bloom_level]",
+      "level_num": [assigned_level_number],
+      "skill": "{unit_name}",
+      "skill_name": "[assigned_bloom_level]-{unit_name}",
+      "subject": "{subject}",
+      "subject_area": "{subject_area}",
+      "requires_diagram": false,
+      "diagram_gen_steps": [],
+      "learning_objectives": {learning_objectives_json}
+    }}
+  ]
+}} 

@@ -247,15 +247,22 @@ def generate_diagram_for_question(question_doc, base_output_dir):
     diagram_steps = question_doc.get('diagram_gen_steps', [])
     question_text = question_doc.get('question_text', '') or question_doc.get('question', '')
     
-    if requires_diagram and diagram_steps:
-        print(f"🎨 Found diagram instructions. Generating with GPT-1...")
+    if requires_diagram:
+        print(f"🎨 Question requires diagram. Generating with GPT-1...")
         
         llm_connections = LLMConnections(config={})
         diagram_output_dir = os.path.join(base_output_dir)
         
-        # Concatenate question text with diagram generation steps
-        diagram_steps_text = " ".join(diagram_steps) if isinstance(diagram_steps, list) else str(diagram_steps)
-        gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps_text}"
+        # Build the prompt based on available information
+        if diagram_steps:
+            # Use both question text and diagram generation steps
+            diagram_steps_text = " ".join(diagram_steps) if isinstance(diagram_steps, list) else str(diagram_steps)
+            gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps_text}"
+            print(f"📝 Using question text with diagram instructions")
+        else:
+            # Use only question text when no diagram steps are provided
+            gpt1_prompt = f"Question: {question_text}"
+            print(f"📝 Using question text only (no diagram instructions provided)")
         
         try:
             # Generate diagram with custom filename
@@ -270,8 +277,6 @@ def generate_diagram_for_question(question_doc, base_output_dir):
             print(f"✅ Diagram saved as {filename} in {diagram_output_dir}")
         except Exception as e:
             print(f"❌ Failed to generate diagram: {e}")
-    elif requires_diagram and not diagram_steps:
-        print(f"⚠️  Question requires diagram but no diagram generation steps provided")
     else:
         print(f"📝 Question does not require a diagram")
 
@@ -351,12 +356,12 @@ def generate_diagram_for_question_id(question_id):
         print("2. Uncomment 'list_available_documents(10)' to see available document IDs")
         print("3. Update the document ID to one that exists in your database")
 
-def generate_diagrams_for_skill(skill_name):
+def generate_diagrams_for_skill(skill_name=None):
     """
     Generate diagrams for all questions in a specific skill.
     
     Args:
-        skill_name: The skill name to filter questions by (e.g., "Integration and Accumulation of Change")
+        skill_name: The skill name to filter questions by. Use "*", "no", "all", or None to get all documents.
     """
     logger.info(f"Generating diagrams for skill: {skill_name}")
     
@@ -367,21 +372,32 @@ def generate_diagrams_for_skill(skill_name):
             return
             
         questions_collection = db['dryrun_questions']
+        #questions_collection = db['test_questions']
         
-        # Query for questions with the specified skill and requires_diagram = true
-        query = {
-            "skill": skill_name,
-            "requires_diagram": True
-        }
+        # Build query based on skill_name parameter
+        if skill_name is None or skill_name in ["*", "no", "all"]:
+            # Get all documents that require diagrams, regardless of skill
+            query = {"requires_diagram": True}
+            logger.info("Using wildcard parameter or None - getting all documents that require diagrams")
+        else:
+            # Query for questions with the specified skill and requires_diagram = true
+            query = {
+                "skill": skill_name,
+                "requires_diagram": True
+            }
+            logger.info(f"Filtering by specific skill: {skill_name}")
         
         # Find all matching documents
         documents = list(questions_collection.find(query))
         
         if not documents:
-            logger.warning(f"No questions found for skill '{skill_name}' that require diagrams")
+            if skill_name is None or skill_name in ["*", "no", "all"]:
+                logger.warning("No questions found that require diagrams")
+            else:
+                logger.warning(f"No questions found for skill '{skill_name}' that require diagrams")
             return
             
-        logger.info(f"Found {len(documents)} questions for skill '{skill_name}' that require diagrams")
+        logger.info(f"Found {len(documents)} questions that require diagrams")
         
         # Set the output directory for skill-based diagrams
         skill_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
@@ -402,10 +418,76 @@ def generate_diagrams_for_skill(skill_name):
             # Generate diagram for this question
             generate_diagram_for_question(question_doc, skill_output_dir)
             
-        logger.info(f"✅ Completed diagram generation for {len(documents)} questions in skill '{skill_name}'")
+        logger.info(f"✅ Completed diagram generation for {len(documents)} questions")
         
     except Exception as e:
         logger.error(f"Error generating diagrams for skill '{skill_name}': {e}")
+
+def generate_diagrams_for_subject(subject=None):
+    """
+    Generate diagrams for all questions in a specific subject.
+    
+    Args:
+        subject: The subject name to filter questions by. Use "*", "no", "all", or None to get all documents.
+    """
+    logger.info(f"Generating diagrams for subject: {subject}")
+    
+    try:
+        db = get_connection_doc_db()
+        if db is None:
+            logger.error("Database connection failed")
+            return
+            
+        questions_collection = db['test_questions']
+        
+        # Build query based on subject parameter
+        if subject is None or subject in ["*", "no", "all"]:
+            # Get all documents that require diagrams, regardless of subject
+            query = {"requires_diagram": True}
+            logger.info("Using wildcard parameter or None - getting all documents that require diagrams")
+        else:
+            # Query for questions with the specified subject and requires_diagram = true
+            query = {
+                "subject": subject,
+                "requires_diagram": True
+            }
+            logger.info(f"Filtering by specific subject: {subject}")
+        
+        # Find all matching documents
+        documents = list(questions_collection.find(query))
+        
+        if not documents:
+            if subject is None or subject in ["*", "no", "all"]:
+                logger.warning("No questions found that require diagrams")
+            else:
+                logger.warning(f"No questions found for subject '{subject}' that require diagrams")
+            return
+            
+        logger.info(f"Found {len(documents)} questions that require diagrams")
+        
+        # Set the output directory for subject-based diagrams
+        subject_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
+        
+        # Ensure the output directory exists
+        os.makedirs(subject_output_dir, exist_ok=True)
+        
+        # Process each question
+        for i, question_doc in enumerate(documents, 1):
+            print(f"\n{'='*60}")
+            print(f"Processing question {i}/{len(documents)}")
+            print(f"{'='*60}")
+            
+            # Convert ObjectId to string for JSON serialization
+            if "_id" in question_doc:
+                question_doc["_id"] = str(question_doc["_id"])
+            
+            # Generate diagram for this question
+            generate_diagram_for_question(question_doc, subject_output_dir)
+            
+        logger.info(f"✅ Completed diagram generation for {len(documents)} questions")
+        
+    except Exception as e:
+        logger.error(f"Error generating diagrams for subject '{subject}': {e}")
 
 # === MAIN ===
 
@@ -421,5 +503,6 @@ if __name__ == "__main__":
     
     # Try to get a question document by ID
     #generate_diagram_for_question_id("6852442133434e3e748553af")
-    generate_diagrams_for_skill("Fluids")
+    #generate_diagrams_for_skill("*")
+    generate_diagrams_for_subject("AP Physics")
     
