@@ -347,6 +347,19 @@ def generate_diagram_for_question_id(question_id):
         # Ensure the output directory exists
         os.makedirs(skill_output_dir, exist_ok=True)
         
+        # Check if diagram already exists
+        doc_id = str(question_document.get('_id', ''))
+        diagram_filename = f"diagram_{doc_id}.png"
+        diagram_path = os.path.join(skill_output_dir, diagram_filename)
+        
+        if os.path.exists(diagram_path):
+            print(f"📁 Diagram already exists: {diagram_filename}")
+            print(f"⏭️  Skipping generation for question {doc_id}")
+            return
+        else:
+            print(f"🆕 Diagram does not exist: {diagram_filename}")
+            print(f"🎨 Generating diagram for question {doc_id}")
+        
         # Direct call to process single question diagram for database documents
         generate_diagram_for_question(question_document, skill_output_dir)
     else:
@@ -415,6 +428,19 @@ def generate_diagrams_for_skill(skill_name=None):
             if "_id" in question_doc:
                 question_doc["_id"] = str(question_doc["_id"])
             
+            # Check if diagram already exists
+            doc_id = str(question_doc.get('_id', ''))
+            diagram_filename = f"diagram_{doc_id}.png"
+            diagram_path = os.path.join(skill_output_dir, diagram_filename)
+            
+            if os.path.exists(diagram_path):
+                print(f"📁 Diagram already exists: {diagram_filename}")
+                print(f"⏭️  Skipping generation for question {doc_id}")
+                continue
+            else:
+                print(f"🆕 Diagram does not exist: {diagram_filename}")
+                print(f"🎨 Generating diagram for question {doc_id}")
+            
             # Generate diagram for this question
             generate_diagram_for_question(question_doc, skill_output_dir)
             
@@ -423,12 +449,13 @@ def generate_diagrams_for_skill(skill_name=None):
     except Exception as e:
         logger.error(f"Error generating diagrams for skill '{skill_name}': {e}")
 
-def generate_diagrams_for_subject(subject=None):
+def generate_diagrams_for_subject(subject=None, question_type=None):
     """
     Generate diagrams for all questions in a specific subject.
     
     Args:
         subject: The subject name to filter questions by. Use "*", "no", "all", or None to get all documents.
+        question_type: Optional question type to filter by.
     """
     logger.info(f"Generating diagrams for subject: {subject}")
     
@@ -438,7 +465,7 @@ def generate_diagrams_for_subject(subject=None):
             logger.error("Database connection failed")
             return
             
-        questions_collection = db['test_questions']
+        questions_collection = db['dryrun_questions']
         
         # Build query based on subject parameter
         if subject is None or subject in ["*", "no", "all"]:
@@ -451,6 +478,9 @@ def generate_diagrams_for_subject(subject=None):
                 "subject": subject,
                 "requires_diagram": True
             }
+            # Add question_type filter if provided
+            if question_type:
+                query["question_type"] = question_type
             logger.info(f"Filtering by specific subject: {subject}")
         
         # Find all matching documents
@@ -481,6 +511,19 @@ def generate_diagrams_for_subject(subject=None):
             if "_id" in question_doc:
                 question_doc["_id"] = str(question_doc["_id"])
             
+            # Check if diagram already exists
+            doc_id = str(question_doc.get('_id', ''))
+            diagram_filename = f"diagram_{doc_id}.png"
+            diagram_path = os.path.join(subject_output_dir, diagram_filename)
+            
+            if os.path.exists(diagram_path):
+                print(f"📁 Diagram already exists: {diagram_filename}")
+                print(f"⏭️  Skipping generation for question {doc_id}")
+                continue
+            else:
+                print(f"🆕 Diagram does not exist: {diagram_filename}")
+                print(f"🎨 Generating diagram for question {doc_id}")
+            
             # Generate diagram for this question
             generate_diagram_for_question(question_doc, subject_output_dir)
             
@@ -504,5 +547,5 @@ if __name__ == "__main__":
     # Try to get a question document by ID
     #generate_diagram_for_question_id("6852442133434e3e748553af")
     #generate_diagrams_for_skill("*")
-    generate_diagrams_for_subject("AP Physics")
+    generate_diagrams_for_subject("AP Physics", "tests")
     
