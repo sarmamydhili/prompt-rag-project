@@ -44,7 +44,7 @@ class LLMConnections:
             The file path of the saved image or None if an error occurred.
         """
         try:
-            print(f"🖼️  Generating GPT-1 image from prompt:\n{prompt}\n")
+            #print(f"🖼️  Generating GPT-1 image from prompt:\n{prompt}\n")
             client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
             
             response = client.images.generate(
@@ -98,7 +98,7 @@ class LLMConnections:
             return filepath
 
         except Exception as e:
-            print(f"❌ Error during GPT-1 image generation or download: {e}")
+            print(f"❌ Error during GPT-1 image generation or download")
             return None
 
     def generate_question_from_image_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams"):
