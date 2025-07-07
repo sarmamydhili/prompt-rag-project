@@ -542,7 +542,10 @@ def generate_diagrams_for_subject(subject=None, question_type=None):
 
 # === MAIN ===
 
-if __name__ == "__main__":
+def main():
+    """
+    Main function to control script execution.
+    """
     # Uncomment the line below to debug database structure
     # check_database_structure()
     
@@ -553,8 +556,12 @@ if __name__ == "__main__":
     # generate_similar_questions_from_file()
     
     # Try to get a question document by ID
-    generate_diagram_for_question_id("68479a74016483b7d39f386f")
+    #generate_diagram_for_question_id("684646f01a7a9ad29a87e9eb")
     #generate_diagrams_for_skill("*")
     #generate_diagrams_for_subject("AP Physics", "tests")
-    #generate_diagrams_for_subject("AP Physics 2")
-    #generate_diagrams_for_skill("Geometric Optics")
+    generate_diagrams_for_subject("AP Calculus BC")
+    #generate_diagrams_for_skill("Limits and Continuity")
+
+if __name__ == "__main__":
+    main()
+

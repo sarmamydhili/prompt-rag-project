@@ -1,0 +1,94 @@
+### CRITICAL REQUIREMENT - CHEAT SHEET GENERATION:
+You MUST generate comprehensive cheat sheets that serve as quick reference guides for AP exam preparation.
+EVERY cheat sheet MUST include:
+- "subject": "{subject}"
+- "topic": "{skill}"
+- "content_type": "cheat_sheet"
+- "difficulty_level": "AP Exam Level"
+
+Generate a comprehensive **AP exam-level cheat sheet** for {subject} using the following parameters:
+- **Subject**: {subject}
+- **Topic**: {skill}
+- **Content Type**: Cheat Sheet
+- **Difficulty Level**: AP Exam Level
+- **Purpose**: Quick reference guide for exam preparation and quiz taking
+
+- **learning_objectives**: 
+{learning_objectives_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate the cheat sheet directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on creating AP exam-level cheat sheet content that serves as a comprehensive quick reference guide.
+2. **CRITICAL: Generate content that:**
+   - Covers ALL learning objectives in the learning objectives above
+   - Each learning objective must be represented in the cheat sheet
+   - MUST include all essential concepts, formulas, and key information
+   - MUST be at AP exam level difficulty
+   - MUST be organized for quick reference during exams and quizzes
+   - **All mathematical content MUST use LaTeX formatting**
+3. Content MUST:
+   - Provide comprehensive coverage of the topic
+   - Include all essential formulas with proper LaTeX formatting
+   - Offer clear, concise explanations of concepts
+   - Include important relationships and connections
+   - Be appropriate for college-level and AP exam students
+   - Include real-world applications and examples where relevant
+   - Provide quick reference information for exam preparation
+4. Content Structure:
+   - Organize content into logical sections
+   - Each section should focus on a specific aspect of the topic
+   - Include key points, formulas, and important information
+   - Ensure content flows logically for quick reference
+   - Make information easily scannable and accessible
+5. Ensure each section:
+   - Has a clear, descriptive title
+   - Contains relevant content with proper formatting
+   - Includes key points for quick reference
+   - Lists essential formulas with LaTeX formatting
+   - Provides brief descriptions of when to use formulas
+   - Covers all major aspects within {learning_objectives_section}
+   - Is concise but comprehensive
+6. Each cheat sheet MUST include:
+   - A comprehensive overview of the topic
+   - Essential concepts and definitions
+   - Key formulas and equations with LaTeX formatting
+   - Important principles and relationships
+   - Problem-solving strategies and tips
+   - Common applications and examples
+   - Important constants and values
+   - Key diagrams and visual aids
+   - Subject and topic information
+   - Model name that generated the content
+   - Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
+   - Difficulty level: AP Exam Level
+   - Organized sections for quick reference
+7. **CRITICAL: Each cheat sheet MUST be:**
+   - At AP exam level difficulty
+   - Comprehensive and well-organized
+   - Include all essential information
+   - Use proper LaTeX formatting for all mathematical content
+   - Provide quick reference for exam preparation
+   - Include real-world applications where relevant
+
+### Chemistry-Specific Instructions:
+When generating Chemistry content, ensure to include:
+- **Chemical Formulas and Notation:** Use proper chemical formulas (e.g., H₂O, CO₂, CH₄) and chemical equations
+- **Chemical Bonding:** Include Lewis structures, molecular geometry, and bonding types where relevant
+- **Periodic Table Elements:** Use proper element symbols and atomic numbers
+- **Chemical Equations:** Use proper chemical equation formatting with LaTeX
+
+### Physics-Specific Instructions:
+When generating Physics content, ensure to include:
+- **Physical Quantities:** Use proper symbols and units with LaTeX formatting
+- **Equations:** Include all relevant formulas with proper mathematical notation
+- **Units and Dimensions:** Provide conversion factors and dimensional analysis
+- **Constants:** Include important physical constants with their values
+- **Vector Notation:** Use proper vector notation with LaTeX (e.g., `\( \vec{{v}} \)`)
+
+### Mathematics-Specific Instructions:
+When generating Mathematics content, ensure to include:
+- **Mathematical Notation:** Use proper LaTeX formatting for all mathematical expressions
+- **Formulas and Theorems:** Include all relevant formulas, theorems, and postulates
+- **Proof Strategies:** Include key proof techniques and strategies
+- **Problem-Solving Methods:** Provide step-by-step approaches for common problems 
