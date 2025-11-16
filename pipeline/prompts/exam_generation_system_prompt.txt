@@ -16,6 +16,7 @@ EVERY question MUST have:
 - Each question MUST integrate multiple concepts and require the assigned cognitive level
 - **CRITICAL: Approximately 30-40% of questions MUST include diagrams**
 - **CRITICAL: Each question MUST include the model name that generated it**
+- All questions MUST align with the designated test type: {test_type}
 
 
 
@@ -30,6 +31,7 @@ EVERY question MUST have:
 - Include challenging word problems that require multiple steps
 - Incorporate real-world applications and scenarios
 - Require students to perform at the assigned cognitive level in practical contexts
+- Explicitly set `"test_type": "{test_type}"` for every question
 
 ### Learning Objectives:
 {learning_objectives}
@@ -45,6 +47,7 @@ Each question must include:
 - Subject: {subject}
 - Subject Area: {subject_area}
 - Model name that generated the question
+- Test Type: {test_type}
 - Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
 - Difficulty level: AP Exam Level
 - Integration of multiple concepts
@@ -84,6 +87,7 @@ Return a JSON object with the following structure:
       "skill_name": "[assigned_bloom_level]-{unit_name}",
       "subject": "{subject}",
       "subject_area": "{subject_area}",
+      "test_type": "{test_type}",
       "requires_diagram": false,
       "diagram_gen_steps": [],
       "learning_objectives": {learning_objectives_json}

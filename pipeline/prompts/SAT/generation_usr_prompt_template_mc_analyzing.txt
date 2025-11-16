@@ -1,0 +1,119 @@
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the ANALYZING level (Level 4) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Analyzing"
+- "level_num": 4
+- "skill_name": "Analyzing-<topic>"
+
+Generate exactly **{num_questions} SAT Math Test-level, analysis-focused multiple-choice questions** for SAT Math Test using the following parameters:
+- **Subject**: SAT Math Test
+- **Subject Area**: {subject_area}
+- **topic**: {skill}
+- **Bloom's Taxonomy Level**: Analyzing (Level 4)
+- **Difficulty Level**: Most Challenging SAT Math Test Level
+- **Question Type**: Complex, Multi-concept Analysis Problems
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
+
+- **learning_objectives**: 
+{learning_objectives}
+
+{sample_questions_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on creating the MOST CHALLENGING SAT Math Test-level questions that test advanced analysis and critical thinking skills.
+2. **CRITICAL: Generate questions that:**
+   - Cover ALL learning objectives in the learning objectives above
+   - Each skill must be represented by at least one question
+   - MUST require analysis of at least 3-4 different mathematical concepts or approaches per question
+   - MUST be at the MOST CHALLENGING SAT Math Test level difficulty
+   - **CRITICAL: MUST be multi-step problems requiring at least 4-6 distinct analytical steps**
+   - MUST include complex, multi-step analytical problems
+   - **Approximately 40-50% of questions MUST require diagrams**
+   - For diagram questions, ensure diagrams are essential for analyzing the mathematical problem
+3. Questions MUST:
+   - Require deep analysis of mathematical relationships and patterns
+   - Test ability to compare and contrast different mathematical approaches
+   - Include sophisticated mathematical reasoning and critical thinking
+   - Be appropriate for advanced SAT Math Test preparation
+   - Include real-world applications requiring deep mathematical analysis
+   - Require analysis of mathematical solutions and their underlying logic
+   - Align with SAT Math content areas: Heart of Algebra, Problem Solving and Data Analysis, Passport to Advanced Math
+   - For diagram questions:
+     * Include analytical scenarios requiring comparison or evaluation
+     * Require use of the diagram to analyze the mathematical problem
+     * Use appropriate diagram types (comparative charts, analytical frameworks, complex visualizations)
+4. Question Distribution:
+   - Total questions: {num_questions}
+   - Questions with diagrams: Approximately 40-50% (round to nearest whole number)
+   - Questions without diagrams: Remaining percentage
+   - Ensure even distribution of diagram types
+5. Ensure each question:
+   - Tests ability to analyze mathematical concepts from multiple perspectives
+   - Includes comparison and contrast of different mathematical approaches
+   - Requires evaluation of mathematical arguments and reasoning
+   - Covers all major analytical aspects within {learning_objectives}
+   - Is extremely challenging and requires multiple analytical steps
+   - **CRITICAL: Must guide students through 4-6 distinct analytical steps to reach the solution**
+   - Has equally plausible answer choices
+   - Is relevant to advanced SAT Math Test format and difficulty level
+6. Each question MUST include:
+   - A complex question stem requiring deep analysis of multiple mathematical concepts
+   - **CRITICAL: Present complex scenarios that naturally require multiple analytical steps, but DO NOT explicitly list "Step 1, Step 2, etc." in the problem text**
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "C")
+   - **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
+   - "level": "Analyzing" (MUST be exactly this)
+   - "level_num": 4 (MUST be exactly this)
+   - skill - same as topic
+   - "skill_name": "Analyzing-<Topic>" (MUST start with "Analyzing-")
+   - Subject (SAT Math Test)
+   - Subject Area
+   - Difficulty level: Most Challenging SAT Math Test Level
+   - Integration of multiple mathematical concepts requiring analysis
+   - Complex analytical problem structure
+   - Diagram requirements:
+     * "requires_diagram": boolean (true if question needs a diagram)
+     * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
+7. For questions requiring diagrams:
+   - Set "requires_diagram" to true
+   - Provide detailed "diagram_gen_steps" as an array of strings including:
+     * **CRITICAL: First step MUST reference the question text and explain how the diagram relates to the specific analytical question**
+     * Type of diagram (e.g., "comparative graph", "analytical framework", "complex geometric analysis")
+     * Required mathematical elements and their analytical relationships
+     * Comparative elements and analytical structures
+     * Scale and dimensions for analytical clarity
+     * Labels and annotations for analysis
+     * Color coding for different analytical components
+     * Any specific mathematical or analytical requirements
+     * Steps to show the mathematical analysis process
+   - Ensure diagram steps are clear and specific enough for generation
+   - Include all necessary mathematical notation and labels
+   - Specify any special requirements for visualization
+   - Include steps to show the analysis of mathematical concepts
+   - **IMPORTANT: Ensure diagram instructions are specific enough to generate a diagram that directly helps analyze the question**
+8. **CRITICAL: Each question MUST be:**
+   - At the MOST CHALLENGING SAT Math Test level difficulty
+   - A complex analytical problem
+   - Require analysis of multiple mathematical concepts
+   - **CRITICAL: Require 4-6 distinct analytical steps to solve**
+   - Include real-world applications requiring deep mathematical analysis
+   - Challenge students' mathematical analysis and critical thinking skills
+   - Have appropriate diagram requirements if needed
+
+### SAT Math-Specific Instructions:
+When generating SAT Math Test content, ensure to include:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When questions involve geometric figures, set `requires_diagram` to `true` and provide detailed diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **Mathematical Analysis:** Focus on analyzing mathematical concepts and their relationships
+- **Diagram Instructions for SAT Math:** When diagrams are needed, provide specific instructions including:
+  - Diagram type (coordinate plane, geometric figure, number line, etc.)
+  - Mathematical elements to include (points, lines, curves, axes, etc.)
+  - Scale and orientation requirements
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 

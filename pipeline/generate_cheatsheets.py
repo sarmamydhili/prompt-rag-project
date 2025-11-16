@@ -679,25 +679,7 @@ def main():
     
     # Example usage - single topic
     result = generator.run_workflow(
-        subject="AP Physics",
-        topic="Kinematics",
-        provider="openai",
-        model="gpt-4o",
-        save_to_mongo=False,
-        save_to_file=True
-    )
-    
-    if result["workflow_success"]:
-        print("\n🎉 Cheat sheet generated successfully!")
-        print(f"Final result: {result['final_result']}")
-    else:
-        print(f"\n❌ Workflow failed: {result['error']}")
-    
-    # Example usage - all topics
-    print("\n" + "="*60)
-    print("Processing all topics for AP Physics...")
-    all_topics_result = generator.run_workflow(
-        subject="AP Physics",
+        subject="Calculus 3",
         topic="*",
         provider="openai",
         model="gpt-4o",
@@ -705,20 +687,11 @@ def main():
         save_to_file=False
     )
     
-    if all_topics_result["workflow_success"]:
-        print(f"\n🎉 Batch processing completed!")
-        if "summary" in all_topics_result:
-            print(f"Summary: {all_topics_result['summary']}")
-        else:
-            print(f"Total topics processed: {all_topics_result.get('total_topics', 'unknown')}")
-            print(f"Successful: {all_topics_result.get('successful_topics', 0)}")
-            print(f"Failed: {all_topics_result.get('failed_topics', 0)}")
+    if result["workflow_success"]:
+        print("\n🎉 Cheat sheet generated successfully!")
+        #print(f"Final result: {result['final_result']}")
     else:
-        print(f"\n❌ Batch processing failed: {all_topics_result.get('error', 'Unknown error')}")
+        print(f"\n❌ Workflow failed: {result['error']}")
     
-    # Close connections
-    generator.close_connections()
-
-
 if __name__ == "__main__":
     main() 

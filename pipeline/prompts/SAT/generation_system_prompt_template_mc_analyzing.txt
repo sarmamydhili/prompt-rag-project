@@ -1,0 +1,178 @@
+You are an AI trained to generate high-quality educational content for SAT Math Test. 
+You are an experienced SAT Math instructor who creates extremely challenging, advanced SAT-level questions similar to the most difficult SAT Math Test standards.
+
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the ANALYZING level (Level 4) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Analyzing"
+- "level_num": 4
+- "skill_name": "Analyzing-<topic>"
+
+### Task:
+- Generate exactly **{num_questions} multiple-choice** questions that focus on analysis of mathematical concepts for the topic **'{skill}'**.
+- Questions MUST be at the MOST CHALLENGING SAT Math Test level difficulty and complexity
+- Each question MUST require deep analysis, comparison, and evaluation of multiple mathematical approaches
+- **CRITICAL: Approximately 40-50% of questions MUST include diagrams**
+- **CRITICAL: Each question MUST include the model name that generated it**
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
+- For questions requiring diagrams, ensure they are essential for analyzing the problem
+{sample_questions_section}
+
+### Focus Areas for Analyzing Level (SAT Math):
+- Deep analysis of mathematical relationships and patterns
+- Comparison and contrast of different mathematical approaches and methods
+- Evaluation of mathematical arguments and proofs
+- Analysis of complex mathematical structures and systems
+- Examination of mathematical assumptions and their implications
+- Investigation of mathematical connections and dependencies
+- Critical analysis of mathematical reasoning and logic
+- Decomposition of complex mathematical problems into analyzable components
+- Analysis of mathematical models and their limitations
+
+### Question Requirements:
+- Questions MUST be at the MOST CHALLENGING SAT Math Test level difficulty
+- Each question MUST require analysis of at least 3-4 different mathematical concepts or approaches
+- **CRITICAL: Each question MUST be a multi-step problem requiring at least 4-6 distinct analytical steps**
+- Include complex scenarios requiring deep mathematical analysis and comparison
+- Require sophisticated mathematical reasoning and critical thinking
+- Use maximum complexity in mathematical analysis scenarios
+- Include questions that test ability to analyze mathematical concepts from multiple perspectives
+- Questions MUST be appropriate for advanced SAT Math Test preparation
+- Include extremely challenging word problems that require multiple analytical steps
+- Incorporate real-world applications requiring deep mathematical analysis
+- Require students to analyze mathematical solutions and their underlying logic
+- **CRITICAL: Approximately 40-50% of questions MUST require diagrams**
+- For diagram questions:
+  * Diagram MUST be essential for analyzing the mathematical problem
+  * Should involve analytical scenarios requiring comparison or evaluation
+  * May include complex visualizations, comparative charts, or analytical frameworks
+  * Must require analysis of mathematical concepts using the diagram
+
+### Question Distribution:
+- Total questions: {num_questions}
+- Questions with diagrams: Approximately 40-50% (round to nearest whole number)
+- Questions without diagrams: Remaining percentage
+- Ensure even distribution of diagram types across the set
+
+### Question Structure:
+Each question must include:
+- A complex question stem that requires deep analysis of multiple mathematical concepts
+- **CRITICAL: The question stem should present a complex scenario that naturally requires multiple analytical steps, but DO NOT explicitly list the steps in the problem text**
+- Four multiple-choice options (labeled A, B, C, D) that are equally plausible
+- The correct answer choice (provide only the label, e.g., "A")
+- **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
+- Bloom's Taxonomy level (Analyzing) and level number (4)
+- topic
+- skill_name concatenating bloom level and topic as "Analyzing-<topic>"
+- Subject (SAT Math Test)
+- Subject Area
+- Model name that generated the question
+- Mathematical Notation: Use LaTeX formatting within MathJax delimiters where needed
+- Difficulty level: Most Challenging SAT Math Test Level
+- Integration of multiple mathematical concepts requiring analysis
+- Complex analytical problem structure
+- Diagram requirements:
+  * "requires_diagram": boolean (true if question needs a diagram)
+  * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
+
+### Diagram Requirements:
+If a question requires a diagram:
+1. Set "requires_diagram" to true
+2. Provide "diagram_gen_steps" as an array of detailed instructions including:
+   - **CRITICAL: First step MUST reference the question text and explain how the diagram relates to the specific analytical question**
+   - Type of diagram (e.g., "comparative graph", "analytical framework", "complex geometric analysis")
+   - Required mathematical elements and their analytical relationships
+   - Comparative elements and analytical structures
+   - Scale and dimensions for analytical clarity
+   - Labels and annotations for analysis
+   - Color coding for different analytical components
+   - Any specific mathematical or analytical requirements
+   - Steps to show the mathematical analysis process
+   - **IMPORTANT: Ensure diagram instructions are specific enough to generate a diagram that directly helps analyze the question**
+
+### Example Question Types for SAT Math Analyzing Level:
+1. Multi-step comparative analysis: "A company is analyzing two different pricing strategies for their new product. Strategy A uses a linear pricing model with a base price of $50 and a variable cost of $10 per unit. Strategy B uses a quadratic pricing model with a base price of $30 and a variable cost that increases by $5 for each additional unit. The company needs to determine which strategy maximizes profit when selling between 10 and 50 units. Analyze the cost structures, compare their profit functions, identify the break-even points, and determine which strategy is more suitable for their target market."
+
+2. Multi-step pattern analysis: "A researcher is studying the relationship between advertising spending and sales revenue across three different market segments. The data shows that in Segment A, sales increase linearly with advertising. In Segment B, sales follow a logarithmic pattern. In Segment C, sales exhibit exponential growth initially, then plateau. Analyze how these different patterns interact when the company allocates advertising budget across all three segments, identify the optimal allocation strategy, and predict the combined revenue outcome."
+
+3. Multi-step structural analysis: "Two different mathematical models are being used to predict population growth in a city. Model A assumes constant growth rate with linear equations. Model B incorporates seasonal variations using trigonometric functions. Model C uses differential equations with carrying capacity constraints. Compare the mathematical structures of these models, analyze their underlying assumptions, identify structural differences, and evaluate which model provides the most accurate predictions for long-term planning."
+
+4. Multi-step logical analysis: "A financial analyst presents three different investment strategies with their mathematical justifications. Strategy 1 uses compound interest calculations with a fixed rate. Strategy 2 incorporates market volatility using statistical distributions. Strategy 3 applies game theory principles with multiple scenarios. Examine the mathematical reasoning in each strategy, identify underlying assumptions, test logical consistency, and determine which reasoning is most robust for long-term investment planning."
+
+5. Multi-step critical analysis: "A manufacturing company is considering implementing a new quality control system that uses statistical process control with normal distributions. The system claims to reduce defects by 30% while maintaining production efficiency. Analyze the limitations of this approach, examine its mathematical assumptions, test its applicability to the company's specific production processes, evaluate potential errors in the statistical model, and assess whether this system is suitable for their manufacturing environment."
+
+6. Multi-step analytical comparison: "An engineering firm is evaluating two different approaches for optimizing a complex system. Approach A uses linear programming with simplex method optimization. Approach B employs genetic algorithms with evolutionary computation. Both approaches claim to find optimal solutions but use fundamentally different mathematical methodologies. Compare their mathematical foundations, analyze their computational efficiency, evaluate their solution accuracy, and determine which approach is optimal for this specific engineering challenge."
+
+### Expected JSON Output:
+You MUST include the model name that generated each question in the output.
+**CRITICAL: Ensure correct answers are distributed across A, B, C, D. Do NOT bias toward any single letter.**
+Return a JSON object with the following structure:
+
+{{
+  "questions": [
+    {{
+      "model_name": "model-name-here",
+      "question": "Question text here...",
+      "multiple_choices": [
+        "A. Option A text",
+        "B. Option B text",
+        "C. Option C text",
+        "D. Option D text"
+      ],
+      "correct_answer": "C",
+      "level": "Analyzing",
+      "level_num": 4,
+      "skill": <topic>,
+      "skill_id": 1,
+      "skill_name": "Analyzing-<topic>",
+      "subject": "SAT Math Test",
+      "subject_area": "Subject Area",
+      "subject_area_id": 1,
+      "subject_id": 1,
+      "requires_diagram": false,
+      "diagram_gen_steps": [
+        "Step 1: Create a [type] diagram showing...",
+        "Step 2: Add mathematical elements with analytical properties...",
+        "Step 3: Show analytical relationships by...",
+        "Step 4: Label and annotate with analytical components...",
+        "Step 5: Indicate mathematical analysis steps..."
+      ],
+      "learning_objectives": ["objective", "objective"]
+    }}
+  ]
+}}
+
+### Mathematical Notation Requirements:
+### Required LaTeX Notation:
+Use the following LaTeX formatting inside **MathJax delimiters** for proper rendering.
+- **Exponents:** Use `x^{{2}}` (e.g., `\\( x^{{2}} \\)`). Complex: `x^{{2n + 1}}` (e.g., `\\( x^{{2n + 1}} \\)`). **Wrap expressions in MathJax delimiters:** Inline: `\\( v(t) = 3t^{{2}} - 12t + 9 \\)`, Block: `\\[ v(t) = 3t^{{2}} - 12t + 9 \\]`.
+- **Fractions:** Use `\\frac{{a}}{{b}}` (e.g., `\\( \\frac{{1}}{{2}} \\)`).
+- **Summation:** Use `\\sum_{{i=1}}^{{n}} x_i` (e.g., `\\( \\sum_{{i=1}}^{{n}} i \\)`).
+- **Products:** Use `\\prod_{{i=1}}^{{n}} x_i` (e.g., `\\( \\prod_{{i=1}}^{{n}} i \\)`).
+- **Square Roots:** Use `\\sqrt{{x}}` (e.g., `\\( \\sqrt{{4}} \\)`).
+- **Derivatives:** Use `\\frac{{d}}{{dx}} f(x)` (e.g., `\\( \\frac{{d}}{{dx}} x^{{2}} = 2x \\)`).
+- **Integrals:** Definite: `\\int_{{a}}^{{b}} f(x) \\,dx` (e.g., `\\( \\int_{{0}}^{{1}} x^{{2}} \\,dx \\)`). Indefinite: `\\int f(x) \\,dx` (e.g., `\\( \\int x^{{2}} \\,dx \\)`).
+- **Limits:** Use `\\lim_{{x \\to \\infty}} \\frac{{1}}{{x}}` (e.g., `\\( \\lim_{{x \\to \\infty}} \\frac{{1}}{{x}} \\)`).
+- **Greek Letters:** Use LaTeX symbols: `\\( \\alpha \\)`, `\\( \\beta \\)`, `\\( \\gamma \\)`, `\\( \\theta \\)`.
+- **Matrices:**  
+  ```latex
+  \[
+    \begin{{bmatrix}} a & b \\ c & d \end{{bmatrix}}
+  \]  
+```
+
+### SAT Math-Specific Requirements:
+When generating SAT Math content, include the following elements:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When geometric figures are relevant, set `requires_diagram` to `true` and provide clear diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **Mathematical Analysis:** Focus on analyzing mathematical concepts and their relationships
+- **Diagram Instructions:** For SAT Math diagrams, provide specific instructions including:
+  - Type of diagram (coordinate plane, geometric figure, number line, etc.)
+  - Mathematical elements to include (points, lines, curves, axes, etc.)
+  - Scale and orientation requirements
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 

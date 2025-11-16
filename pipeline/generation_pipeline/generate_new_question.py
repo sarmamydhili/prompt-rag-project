@@ -430,7 +430,6 @@ class GlobalContext:
                 
                 parsed_json = json.loads(content)
                 questions_collection = self.mongo_db[self.mongo_output_collection_name]
-                
                 # Handle both array of questions and single question object
                 questions_to_process = []
                 if isinstance(parsed_json, list):
@@ -445,11 +444,9 @@ class GlobalContext:
                     if isinstance(question, dict):
                         try:
                             question['created_at'] = datetime.utcnow()
-                            #print(f"Attempting to insert question: {question['question']} in collection: {self.mongo_output_collection_name}")
                             questions_collection.insert_one(question)
-                            #print(f"✅ Successfully inserted question: {question['question']}")
                         except Exception as e:
-                            print(f"❌ Failed to insert question: {question['question']}")
+                            print(f"❌ Failed to insert question: {question.get('question', 'No question text')[:50]}...")
                             print(f"Error details: {str(e)}")
                             continue  # Continue to next question
                     else:
@@ -747,16 +744,19 @@ class QuestionGenerationWorkflow(BaseWorkflow):
 
             elif self.context.output_mode == "mongo":
                 print(f"Writing content to MongoDB")
+                total_questions = 0
                 for content in contents:
                     try:
                         parsed_content = json.loads(content)
                         if 'questions' in parsed_content:
-                            for question in parsed_content['questions']:
+                            questions = parsed_content['questions']
+                            total_questions += len(questions)
+                            for question in questions:
                                 self.context.store_output_to_mongo(json.dumps([question]))
                     except json.JSONDecodeError:
                         print(f"Warning: Could not parse content as JSON: {content}")
                         continue
-                print("✅ Questions stored in MongoDB")
+                print(f"✅ Successfully stored {total_questions} questions in MongoDB")
 
             else:
                 raise ValueError(f"Invalid output_mode: {self.context.output_mode}")

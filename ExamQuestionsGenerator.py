@@ -11,6 +11,7 @@ import os
 import json
 import sys
 import argparse
+import re
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
@@ -53,7 +54,9 @@ class ExamQuestionsGenerator:
             'anthropic_llm_model': model or 'claude-3-5-sonnet-20241022',
             'gemini_llm_model': model or 'gemini-1.5-pro',
             'deepseek_llm_model': model or 'deepseek-chat',
-            'grok_llm_model': model or 'grok-3',
+            #'grok_llm_model': model or 'grok-3',
+            'grok_llm_model': 'grok-3-mini'
+
         })
         
         # Initialize MongoDB operations
@@ -74,7 +77,7 @@ class ExamQuestionsGenerator:
                 self.mongo_server = '127.0.0.1'
                 self.mongo_port = '27017'
                 self.mongo_db_name = 'adaptive_learning_docs'
-                self.mongo_questions_collection = 'questions'
+                self.mongo_questions_collection = 'test_questions'
                 self.mongo_course_framework_collection = 'course_framework'
                 self.mongo_output_collection = 'test_questions'
                 self.mongo_adaptive_db_name = 'adaptive_learning_docs'
@@ -172,11 +175,31 @@ class ExamQuestionsGenerator:
         
         return units_with_questions
     
+    def _sanitize_llm_response(self, response: str) -> str:
+        """
+        Clean up the raw LLM response so it can be parsed as JSON.
+        Removes markdown code fences and fixes single backslashes used for LaTeX.
+        """
+        if not response:
+            return response
+
+        cleaned = response.strip()
+        cleaned = cleaned.strip('`')
+        if cleaned.lower().startswith('json'):
+            cleaned = cleaned[4:].strip()
+        cleaned = cleaned.strip('`')
+
+        # Escape single backslashes that would break JSON parsing.
+        cleaned = re.sub(r'(?<!\\)\\(?![\\/"bfnrtu])', r'\\\\', cleaned)
+        cleaned = re.sub(r'(?<!\\)\\infty', r'\\\\infty', cleaned)
+        return cleaned
+
     def generate_questions(self,
                           subject: str,
                           unit_name: str,
                           learning_objectives: List[str],
-                          num_questions: int = 1) -> Optional[Dict[str, Any]]:
+                          num_questions: int = 1,
+                          test_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Generate exam questions using the LLM.
         
@@ -185,6 +208,7 @@ class ExamQuestionsGenerator:
             unit_name: The unit name
             learning_objectives: List of learning objectives
             num_questions: Number of questions to generate
+            test_type: Optional test type identifier (e.g., "calculator", "no-calculator")
             
         Returns:
             Generated questions as a dictionary or None if generation failed
@@ -206,6 +230,7 @@ class ExamQuestionsGenerator:
                 unit_name=unit_name,
                 num_questions=num_questions,
                 provider=self.provider,  # Pass the actual provider name
+                test_type=test_type or "unspecified",
                 learning_objectives=learning_objectives_text,
                 learning_objectives_json=learning_objectives_json
             )
@@ -217,11 +242,12 @@ class ExamQuestionsGenerator:
                 unit_name=unit_name,
                 num_questions=num_questions,
                 provider=self.provider,  # Pass the actual provider name
+                test_type=test_type or "unspecified",
                 learning_objectives=learning_objectives_text,
                 learning_objectives_json=learning_objectives_json
             )
             
-            print(f"      🔍 Generating {num_questions} questions for unit: {unit_name}")
+            print(f"      🔍 Generating {num_questions} questions for unit: {unit_name} (test_type={test_type or 'unspecified'})")
             
             # Call LLM API
             response = self.llm_connections.call_llm_api(
@@ -237,7 +263,14 @@ class ExamQuestionsGenerator:
                 return None
             
             try:
-                question_data = json.loads(response)
+                sanitized_response = self._sanitize_llm_response(response)
+                question_data = json.loads(sanitized_response)
+                if test_type:
+                    questions_list = question_data.get('questions', [])
+                    for question in questions_list:
+                        if isinstance(question, dict):
+                            question['test_type'] = test_type
+                    question_data['test_type'] = test_type
                 print("      ✅ Questions generated successfully!")
                 return question_data
             except json.JSONDecodeError as e:
@@ -248,7 +281,10 @@ class ExamQuestionsGenerator:
             print(f"      ❌ Error generating questions: {e}")
             return None
     
-    def generate_exam_questions(self, subject: str, unit_name: str = None) -> List[Dict[str, Any]]:
+    def generate_exam_questions(self,
+                                subject: str,
+                                unit_name: str = None,
+                                test_type: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Generate complete exam questions for a subject.
         
@@ -256,11 +292,12 @@ class ExamQuestionsGenerator:
             subject: The subject to generate questions for
             unit_name: Optional specific unit name. If provided, generates questions only for this unit.
                       If None, generates questions for all units based on weightage.
+            test_type: Optional test type identifier (e.g., "calculator", "no-calculator")
             
         Returns:
             List of all generated questions
         """
-        print(f"🚀 Starting exam generation for subject: {subject}")
+        print(f"🚀 Starting exam generation for subject: {subject} (test_type={test_type or 'unspecified'})")
         
         # Get units from MongoDB
         units = self.get_subject_units_from_mongodb(subject)
@@ -310,7 +347,8 @@ class ExamQuestionsGenerator:
                     subject=subject,
                     unit_name=current_unit_name,
                     learning_objectives=unit_learning_objectives,
-                    num_questions=num_questions
+                    num_questions=num_questions,
+                    test_type=test_type
                 )
                 
                 if questions:
@@ -327,6 +365,38 @@ class ExamQuestionsGenerator:
             print("❌ Failed to generate any questions")
             return []
     
+    def _add_metadata_to_questions(self, questions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Add metadata fields to each question (matches save_questions_to_mongodb behavior).
+        Returns a deep-copied list so callers can write or persist safely.
+        """
+        enriched_sets: List[Dict[str, Any]] = []
+        batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        for i, question_data in enumerate(questions):
+            questions_list = question_data.get('questions', [])
+            if not questions_list:
+                continue
+
+            enriched_set = question_data.copy()
+            enriched_set['questions'] = []
+
+            for j, question in enumerate(questions_list):
+                enriched_question = dict(question)
+                enriched_question['created_at'] = datetime.now().isoformat()
+                enriched_question['batch_id'] = batch_id
+                enriched_question['question_index'] = j + 1
+                enriched_question['set_index'] = i + 1
+                enriched_question['question_type'] = "tests"
+                if 'test_type' not in enriched_question and question_data.get('test_type'):
+                    enriched_question['test_type'] = question_data['test_type']
+
+                enriched_set['questions'].append(enriched_question)
+
+            enriched_sets.append(enriched_set)
+
+        return enriched_sets
+
     def save_questions_to_file(self, questions: List[Dict[str, Any]], filename: str = None):
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -335,8 +405,9 @@ class ExamQuestionsGenerator:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         
         try:
+            enriched_questions = self._add_metadata_to_questions(questions)
             with open(filename, 'w', encoding='utf-8') as file:
-                json.dump(questions, file, indent=2, ensure_ascii=False)
+                json.dump(enriched_questions or questions, file, indent=2, ensure_ascii=False)
             print(f"✅ Questions saved to: {filename}")
         except Exception as e:
             print(f"❌ Error saving questions to file: {e}")
@@ -364,6 +435,9 @@ def save_questions_to_mongodb(questions: List[Dict[str, Any]], mongo_ops: MongoO
                     question['batch_id'] = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     question['question_index'] = j + 1
                     question['set_index'] = i + 1
+                    question['question_type'] = "tests"
+                    if 'test_type' not in question and question_data.get('test_type'):
+                        question['test_type'] = question_data['test_type']
                     
                     # Save individual question to MongoDB
                     question_id = mongo_ops.save_question(question)
@@ -379,14 +453,15 @@ def save_questions_to_mongodb(questions: List[Dict[str, Any]], mongo_ops: MongoO
 
 def main():
     # Set your parameters here
-    subject = "AP Calculus BC"  # Change this to your desired subject
+    subject = "SAT Math"  # Change this to your desired subject
     model = "grok-3-latest"  # Change this to your desired model
-    temperature = 0.3  # Change this to your desired temperature
+    temperature = 0.4  # Change this to your desired temperature
     output_file = None  # Change this to your desired output file path (or None for auto-generated)
     provider = "grok"  # Change this to your desired provider
-    total_questions = 45  # Change this to your desired total number of questions
-    #unit_name = "Energy and Momentum of Rotating Systems"  # Change this to a specific unit name (e.g., "Kinematics") or None for all units
+    total_questions = 44  # Change this to your desired total number of questions
+    #unit_name = "Advanced Math"  # Change this to a specific unit name (e.g., "Kinematics") or None for all units
     unit_name = None
+    test_type = "calculator"  # Change this to your desired test type (e.g., "calculator", "no-calculator")
     try:
         # Initialize the generator
         generator = ExamQuestionsGenerator(
@@ -397,13 +472,17 @@ def main():
         )
         
         # Generate exam questions
-        questions = generator.generate_exam_questions(subject=subject, unit_name=unit_name)
+        questions = generator.generate_exam_questions(
+            subject=subject,
+            unit_name=unit_name,
+            test_type=test_type
+        )
         
         if questions:
             # Save to file
             #generator.save_questions_to_file(questions, output_file)
             
-            # Save to MongoDB
+            # Save to MongoDB (commented out - uncomment if you want to save to MongoDB as well)
             save_questions_to_mongodb(questions, generator.mongo_ops)
             
             print(f"\n🎉 Successfully generated questions!")

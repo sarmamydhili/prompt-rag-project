@@ -18,6 +18,10 @@ PROMPT_DIR = os.path.join(os.path.dirname(__file__), "prompts/similar")
 INPUT_DIR = "data/input_questions"
 OUTPUT_DIR = "generated_questions/diagrams"
 
+# Diagram generation instruction
+#DIAGRAM_NO_SOLUTION_INSTRUCTION = "IMPORTANT: The diagram should illustrate the problem/scenario but should NOT show the solution or answer."
+DIAGRAM_NO_SOLUTION_INSTRUCTION = ""
+
 # LLM Configuration - these can be parameterized
 DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "gpt-4"
@@ -211,8 +215,9 @@ def generate_and_save_diagrams(result_data, base_output_dir):
             
             # Concatenate question text with diagram generation steps
             question_text = question.get('question', '')
-            diagram_steps = " ".join(question['diagram_gen_steps'])
-            gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps}"
+            #diagram_steps = " ".join(question['diagram_gen_steps'])
+            diagram_steps = " "
+            gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps}\n\n{DIAGRAM_NO_SOLUTION_INSTRUCTION}"
             #gpt1_prompt = f"Question: {question_text}"
             
             result = llm_connections.generate_diagram_openai(
@@ -245,7 +250,7 @@ def generate_diagram_for_question(question_doc, base_output_dir):
     #        print(f"  {key}: {value[:100]}...")
     #    else:
     #        print(f"  {key}: {value}")
-    
+
     # Check if the question requires a diagram
     requires_diagram = question_doc.get('requires_diagram', False)
     diagram_steps = question_doc.get('diagram_gen_steps', [])
@@ -261,11 +266,11 @@ def generate_diagram_for_question(question_doc, base_output_dir):
         if diagram_steps:
             # Use both question text and diagram generation steps
             diagram_steps_text = " ".join(diagram_steps) if isinstance(diagram_steps, list) else str(diagram_steps)
-            gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps_text}"
+            gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps_text}\n\n{DIAGRAM_NO_SOLUTION_INSTRUCTION}"
             print(f"📝 Using question text with diagram instructions")
         else:
             # Use only question text when no diagram steps are provided
-            gpt1_prompt = f"Question: {question_text}"
+            gpt1_prompt = f"Question: {question_text}\n\n{DIAGRAM_NO_SOLUTION_INSTRUCTION}"
             print(f"📝 Using question text only (no diagram instructions provided)")
         
         try:
@@ -335,7 +340,7 @@ def generate_similar_questions_from_file():
         save_output_json(result)
 
         # Generate diagrams for questions that require them
-        generate_and_save_diagrams(result, OUTPUT_DIR)
+        generate_and_save_diagrams(result, "generated_diagrams")
         
     except Exception as e:
         print(f"❌ An error occurred: {str(e)}")
@@ -349,8 +354,8 @@ def generate_diagram_for_question_id(question_id):
         print(f"ID: {question_document.get('_id')}")
         #print(f"Question: {question_document.get('question_text', 'No text')[:200]}...")
         
-        # Use the same output directory as generate_diagrams_for_skill
-        skill_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
+        # Use the centralized diagram output directory
+        skill_output_dir = "generated_diagrams"
         
         # Ensure the output directory exists
         os.makedirs(skill_output_dir, exist_ok=True)
@@ -421,7 +426,7 @@ def generate_diagrams_for_skill(skill_name=None):
         logger.info(f"Found {len(documents)} questions that require diagrams")
         
         # Set the output directory for skill-based diagrams
-        skill_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
+        skill_output_dir = "generated_diagrams"
         
         # Ensure the output directory exists
         os.makedirs(skill_output_dir, exist_ok=True)
@@ -504,7 +509,7 @@ def generate_diagrams_for_subject(subject=None, question_type=None):
         logger.info(f"Found {len(documents)} questions that require diagrams")
         
         # Set the output directory for subject-based diagrams
-        subject_output_dir = "/Users/sarmakompalli/skillintns/public/drawings_images"
+        subject_output_dir = "generated_diagrams"
         
         # Ensure the output directory exists
         os.makedirs(subject_output_dir, exist_ok=True)
@@ -556,11 +561,13 @@ def main():
     # generate_similar_questions_from_file()
     
     # Try to get a question document by ID
-    #generate_diagram_for_question_id("684646f01a7a9ad29a87e9eb")
-    #generate_diagrams_for_skill("*")
-    #generate_diagrams_for_subject("AP Physics", "tests")
-    generate_diagrams_for_subject("AP Calculus BC")
-    #generate_diagrams_for_skill("Limits and Continuity")
+    #generate_diagram_for_question_id("6850d4dbfeff49e44a5324f8")
+    generate_diagrams_for_skill("Vector Calculus")
+    #generate_diagrams_for_subject("AP Physics C: Electricity and Magnetism", "tests")
+    #generate_diagrams_for_subject("AP Microeconomics")
+    #generate_diagrams_for_skill("Problem Solving and Data Analysis")
+    #generate_diagrams_for_skill("Long-Run Consequences of Stabilization Policie")
+    #generate_diagrams_for_skill("Basic Micro Economic Concepts")
 
 if __name__ == "__main__":
     main()

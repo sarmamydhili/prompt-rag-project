@@ -162,71 +162,112 @@ class MongoOperations:
             List[str]: List of objective descriptions for the specified unit
         """
         try:
-            # print(f"\nDEBUG: Fetching unit objectives for subject: '{subject}', unit: '{unit}'")
-            # print(f"DEBUG: Using collection: {self.course_framework_collection.name}")
+            print(f"\nDEBUG: Fetching unit objectives for subject: '{subject}', unit: '{unit}'")
+            print(f"DEBUG: Using collection: {self.course_framework_collection.name}")
             
-            # First inspect the collection structure
-            self.inspect_course_framework()
+            # First, try to get a sample document to understand the data structure
+            sample_doc = self.course_framework_collection.find_one({"subject": subject})
+            if not sample_doc:
+                print(f"DEBUG: No document found for subject: {subject}")
+                return []
             
-            # First check if the collection has any documents
-            doc_count = self.course_framework_collection.count_documents({})
-            # print(f"DEBUG: Total documents in collection: {doc_count}")
+            # Check if objectives are stored as strings or objects
+            objectives_are_strings = False
+            if 'units' in sample_doc and sample_doc['units']:
+                for unit_doc in sample_doc['units']:
+                    if unit_doc.get('unit') == unit and 'topics' in unit_doc:
+                        for topic in unit_doc['topics']:
+                            if 'objectives' in topic and topic['objectives']:
+                                # Check if first objective is a string or object
+                                first_obj = topic['objectives'][0]
+                                objectives_are_strings = isinstance(first_obj, str)
+                                print(f"DEBUG: Objectives are stored as {'strings' if objectives_are_strings else 'objects'}")
+                                break
+                        break
             
-            # Check if we have any documents with the given subject
-            subject_count = self.course_framework_collection.count_documents({"subject": subject})
-            # print(f"DEBUG: Documents with subject '{subject}': {subject_count}")
-            
-            # Using aggregation pipeline to:
-            # 1. Match the subject
-            # 2. Unwind the units array to work with individual units
-            # 3. Match the specific unit
-            # 4. Unwind the topics array
-            # 5. Unwind the objectives array
-            # 6. Project only the descriptions
-            # 7. Group them into an array
-            pipeline = [
-                {
-                    "$match": {
-                        "subject": subject
-                    }
-                },
-                {
-                    "$unwind": "$units"
-                },
-                {
-                    "$match": {
-                        "units.unit": unit
-                    }
-                },
-                {
-                    "$unwind": "$units.topics"
-                },
-                {
-                    "$unwind": "$units.topics.objectives"
-                },
-                {
-                    "$group": {
-                        "_id": None,
-                        "descriptions": {
-                            "$push": "$units.topics.objectives.description"
+            # Build aggregation pipeline based on data structure
+            if objectives_are_strings:
+                # Objectives are stored as strings directly
+                pipeline = [
+                    {
+                        "$match": {
+                            "subject": subject
+                        }
+                    },
+                    {
+                        "$unwind": "$units"
+                    },
+                    {
+                        "$match": {
+                            "units.unit": unit
+                        }
+                    },
+                    {
+                        "$unwind": "$units.topics"
+                    },
+                    {
+                        "$unwind": "$units.topics.objectives"
+                    },
+                    {
+                        "$group": {
+                            "_id": 0,
+                            "descriptions": {
+                                "$push": "$units.topics.objectives"  # Push the string directly
+                            }
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "descriptions": 1
                         }
                     }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "descriptions": 1
+                ]
+            else:
+                # Objectives are stored as objects with description field
+                pipeline = [
+                    {
+                        "$match": {
+                            "subject": subject
+                        }
+                    },
+                    {
+                        "$unwind": "$units"
+                    },
+                    {
+                        "$match": {
+                            "units.unit": unit
+                        }
+                    },
+                    {
+                        "$unwind": "$units.topics"
+                    },
+                    {
+                        "$unwind": "$units.topics.objectives"
+                    },
+                    {
+                        "$group": {
+                            "_id": 0,
+                            "descriptions": {
+                                "$push": "$units.topics.objectives.description"  # Push the description field
+                            }
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "descriptions": 1
+                        }
                     }
-                }
-            ]
+                ]
             
-            # print(f"DEBUG: Executing aggregation pipeline...")
+            print(f"DEBUG: Executing aggregation pipeline for {'string' if objectives_are_strings else 'object'} objectives...")
             result = list(self.course_framework_collection.aggregate(pipeline))
-            # print(f"DEBUG: Pipeline result: {result}")
+            print(f"DEBUG: Pipeline result: {result}")
 
             # Return the descriptions array or empty array if no results
             descriptions = result[0]['descriptions'] if result else []
-            # print(f"DEBUG: Returning {len(descriptions)} objectives")
+            print(f"DEBUG: Returning {len(descriptions)} objectives")
             return descriptions
             
         except Exception as e:

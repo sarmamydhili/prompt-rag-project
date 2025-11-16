@@ -12,6 +12,7 @@ Generate exactly **{num_questions} AP exam-level, college-level multiple-choice 
 - **Subject Area**: {subject_area}
 - **Unit**: {unit_name}
 - **unit**: {unit_name}
+- **Test Type**: {test_type}
 - **Number of Questions**: {num_questions}
 - **Bloom's Taxonomy Level**: [You will assign this based on the cognitive complexity required - ONLY Analyzing, Applying, or Evaluating]
 - **Difficulty Level**: AP Exam Level
@@ -51,6 +52,7 @@ Generate exactly **{num_questions} AP exam-level, college-level multiple-choice 
    - Difficulty level: AP Exam Level
    - Integration of multiple concepts
    - Complex word problem structure
+   - "test_type": "{test_type}"
    - Diagram requirements:
      * "requires_diagram": boolean (true if question needs a diagram)
      * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
@@ -110,6 +112,7 @@ Return a JSON object with the following structure:
       "skill_name": "[assigned_bloom_level]-{unit_name}",
       "subject": "{subject}",
       "subject_area": "{subject_area}",
+      "test_type": "{test_type}",
       "requires_diagram": false,
       "diagram_gen_steps": [],
       "learning_objectives": {learning_objectives_json}

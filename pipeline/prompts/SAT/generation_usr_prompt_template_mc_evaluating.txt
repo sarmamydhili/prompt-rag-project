@@ -1,0 +1,119 @@
+### CRITICAL REQUIREMENT - BLOOM'S LEVEL:
+You MUST generate questions at the EVALUATING level (Level 5) of Bloom's Taxonomy.
+DO NOT generate questions at any other level.
+EVERY question MUST have:
+- "level": "Evaluating"
+- "level_num": 5
+- "skill_name": "Evaluating-<topic>"
+
+Generate exactly **{num_questions} SAT Math Test-level, evaluation-focused multiple-choice questions** for SAT Math Test using the following parameters:
+- **Subject**: SAT Math Test
+- **Subject Area**: {subject_area}
+- **topic**: {skill}
+- **Bloom's Taxonomy Level**: Evaluating (Level 5)
+- **Difficulty Level**: Highest Challenging SAT Math Test Level
+- **Question Type**: Complex, Multi-concept Evaluation Problems
+- **CRITICAL: You MUST distribute correct answers evenly across A, B, C, D. Aim for approximately 25% each. Do NOT favor any single letter.**
+
+- **learning_objectives**: 
+{learning_objectives}
+
+{sample_questions_section}
+
+**IMPORTANT: Do not ask any clarifying questions. Generate questions directly based on the provided parameters.**
+
+**Instructions:**
+1. Focus on creating the HIGHEST CHALLENGING SAT Math Test-level questions that test advanced evaluation and critical judgment skills.
+2. **CRITICAL: Generate questions that:**
+   - Cover ALL learning objectives in the learning objectives above
+   - Each skill must be represented by at least one question
+   - MUST require evaluation of at least 4-5 different mathematical concepts or approaches per question
+   - MUST be at the HIGHEST CHALLENGING SAT Math Test level difficulty
+   - **CRITICAL: MUST be multi-step problems requiring at least 5-7 distinct evaluative steps**
+   - MUST include complex, multi-step evaluative problems
+   - **Approximately 50-60% of questions MUST require diagrams**
+   - For diagram questions, ensure diagrams are essential for evaluating the mathematical problem
+3. Questions MUST:
+   - Require critical evaluation of mathematical arguments and proofs
+   - Test ability to assess the validity and soundness of mathematical reasoning
+   - Include sophisticated mathematical reasoning and critical judgment
+   - Be appropriate for the most advanced SAT Math Test preparation
+   - Include real-world applications requiring critical mathematical evaluation
+   - Require evaluation of mathematical solutions and their quality
+   - Align with SAT Math content areas: Heart of Algebra, Problem Solving and Data Analysis, Passport to Advanced Math
+   - For diagram questions:
+     * Include evaluative scenarios requiring critical assessment
+     * Require use of the diagram to evaluate the mathematical problem
+     * Use appropriate diagram types (evaluative frameworks, critical analysis charts, complex visualizations)
+4. Question Distribution:
+   - Total questions: {num_questions}
+   - Questions with diagrams: Approximately 50-60% (round to nearest whole number)
+   - Questions without diagrams: Remaining percentage
+   - Ensure even distribution of diagram types
+5. Ensure each question:
+   - Tests ability to evaluate mathematical concepts from multiple critical perspectives
+   - Includes critical assessment of different mathematical approaches
+   - Requires judgment of mathematical strategies and their effectiveness
+   - Covers all major evaluative aspects within {learning_objectives}
+   - Is extremely challenging and requires multiple evaluative steps
+   - **CRITICAL: Must guide students through 5-7 distinct evaluative steps to reach the solution**
+   - Has equally plausible answer choices
+   - Is relevant to the most advanced SAT Math Test format and difficulty level
+6. Each question MUST include:
+   - A complex question stem requiring critical evaluation of multiple mathematical concepts
+   - **CRITICAL: Present complex scenarios that naturally require multiple evaluative steps, but DO NOT explicitly list "Step 1, Step 2, etc." in the problem text**
+   - Four multiple-choice options (labeled A, B, C, D) with consistent formatting
+   - The correct answer (only the label, e.g., "C")
+   - **CRITICAL: Vary the correct answer distribution across A, B, C, D. Do NOT bias toward any single letter.**
+   - "level": "Evaluating" (MUST be exactly this)
+   - "level_num": 5 (MUST be exactly this)
+   - skill - same as topic
+   - "skill_name": "Evaluating-<Topic>" (MUST start with "Evaluating-")
+   - Subject (SAT Math Test)
+   - Subject Area
+   - Difficulty level: Highest Challenging SAT Math Test Level
+   - Integration of multiple mathematical concepts requiring evaluation
+   - Complex evaluative problem structure
+   - Diagram requirements:
+     * "requires_diagram": boolean (true if question needs a diagram)
+     * "diagram_gen_steps": array of strings (detailed steps to generate the diagram if required)
+7. For questions requiring diagrams:
+   - Set "requires_diagram" to true
+   - Provide detailed "diagram_gen_steps" as an array of strings including:
+     * **CRITICAL: First step MUST reference the question text and explain how the diagram relates to the specific evaluative question**
+     * Type of diagram (e.g., "evaluative framework", "critical analysis chart", "complex mathematical evaluation")
+     * Required mathematical elements and their evaluative relationships
+     * Critical assessment elements and evaluative structures
+     * Scale and dimensions for evaluative clarity
+     * Labels and annotations for evaluation
+     * Color coding for different evaluative components
+     * Any specific mathematical or evaluative requirements
+     * Steps to show the mathematical evaluation process
+   - Ensure diagram steps are clear and specific enough for generation
+   - Include all necessary mathematical notation and labels
+   - Specify any special requirements for visualization
+   - Include steps to show the evaluation of mathematical concepts
+   - **IMPORTANT: Ensure diagram instructions are specific enough to generate a diagram that directly helps evaluate the question**
+8. **CRITICAL: Each question MUST be:**
+   - At the HIGHEST CHALLENGING SAT Math Test level difficulty
+   - A complex evaluative problem
+   - Require evaluation of multiple mathematical concepts
+   - **CRITICAL: Require 5-7 distinct evaluative steps to solve**
+   - Include real-world applications requiring critical mathematical evaluation
+   - Challenge students' mathematical evaluation and critical judgment skills
+   - Have appropriate diagram requirements if needed
+
+### SAT Math-Specific Instructions:
+When generating SAT Math Test content, ensure to include:
+- **Algebraic Expressions:** Use proper mathematical notation for equations, inequalities, and expressions
+- **Geometric Concepts:** When questions involve geometric figures, set `requires_diagram` to `true` and provide detailed diagram instructions
+- **Statistical Notation:** Use proper statistical symbols and notation where appropriate
+- **Function Notation:** Include proper function notation (f(x), g(x), etc.) and domain/range concepts
+- **Coordinate Geometry:** Include proper coordinate system notation and geometric relationships
+- **Mathematical Evaluation:** Focus on evaluating mathematical concepts and their quality
+- **Diagram Instructions for SAT Math:** When diagrams are needed, provide specific instructions including:
+  - Diagram type (coordinate plane, geometric figure, number line, etc.)
+  - Mathematical elements to include (points, lines, curves, axes, etc.)
+  - Scale and orientation requirements
+  - Any specific labels or annotations needed
+  - Color coding if needed for clarity 

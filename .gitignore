@@ -47,7 +47,9 @@ generated_questions/
 # Logs
 *.log
 logs/
+diagram*.*
 
 # OS
 .DS_Store
 Thumbs.db
+generated_diagrams/diagram_6881b8d2e89d06c5e6da3b5e.png
