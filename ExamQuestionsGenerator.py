@@ -16,6 +16,8 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
 import math
+import hashlib
+import random
 
 # Add the pipeline directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'pipeline'))
@@ -30,7 +32,7 @@ class ExamQuestionsGenerator:
     A class to generate exam questions using LLM models and prompt templates.
     """
     
-    def __init__(self, provider: str = 'openai', model: str = None, temperature: float = 0.3, total_questions: int = 45):
+    def __init__(self, provider: str = 'openai', model: str = None, temperature: float = 0.3, total_questions: int = 45, top_p: float = 0.95, presence_penalty: float = 0.1, frequency_penalty: float = 0.1, enforce_cross_run_uniqueness: bool = True, similarity_threshold: float = 0.9, max_retries_per_item: int = 3, uniqueness_mongo_collection: str = 'test_questions', hash_field: str = 'hash', embedding_field: str = 'embedding'):
         """
         Initialize the ExamQuestionsGenerator with LLM provider and settings.
         
@@ -44,6 +46,29 @@ class ExamQuestionsGenerator:
         self.model = model
         self.temperature = temperature
         self.total_questions = total_questions
+        self.top_p = top_p
+        self.presence_penalty = presence_penalty
+        self.frequency_penalty = frequency_penalty
+        self.enforce_cross_run_uniqueness = enforce_cross_run_uniqueness
+        # similarity_threshold retained for backward compatibility; not used when cosine disabled
+        self.similarity_threshold = similarity_threshold
+        self.max_retries_per_item = max_retries_per_item
+        self.uniqueness_mongo_collection = uniqueness_mongo_collection
+        self.hash_field = hash_field
+        self.embedding_field = embedding_field
+        self.seen_file_path = "seen_questions.json"
+        # Run seed to influence variation
+        self.run_seed = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000,9999)}"
+        # Load local seen hashes
+        self._seen_hashes = set()
+        try:
+            if os.path.exists(self.seen_file_path):
+                with open(self.seen_file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        self._seen_hashes = set(h for h in data if isinstance(h, str))
+        except Exception:
+            self._seen_hashes = set()
         
         # Initialize database configuration
         self._initialize_db_config()
@@ -98,6 +123,45 @@ class ExamQuestionsGenerator:
                 raise FileNotFoundError(f"Prompt file not found: {file_path}")
         print("✅ All required prompt files found")
     
+    @staticmethod
+    def _canonicalize_question_text(question: Dict[str, Any]) -> str:
+        """
+        Build a canonical text representation for hashing/embedding.
+        """
+        candidates = [
+            str(question.get('question') or ''),
+            str(question.get('stem') or ''),
+            str(question.get('prompt') or ''),
+            str(question.get('title') or '')
+        ]
+        text = " ".join([c.strip() for c in candidates if c]).strip()
+        return re.sub(r'\s+', ' ', text)
+
+    @staticmethod
+    def _compute_hash(text: str) -> str:
+        return hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+    def _dedupe_questions_by_hash(self, subject: str, questions_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Remove duplicates using SHA-256 hash within this batch and against a local seen set.
+        """
+        if not questions_list:
+            return []
+        prior_hashes = self._seen_hashes if self.enforce_cross_run_uniqueness else set()
+        seen_hashes = set()
+        unique_questions: List[Dict[str, Any]] = []
+        for q in questions_list:
+            canonical = self._canonicalize_question_text(q)
+            q_hash = self._compute_hash(canonical) if canonical else None
+            if not q_hash:
+                continue
+            if q_hash in seen_hashes or q_hash in prior_hashes:
+                continue
+            q['hash'] = q_hash
+            seen_hashes.add(q_hash)
+            unique_questions.append(q)
+        return unique_questions
+
     def _load_prompt_template(self, file_path: str) -> str:
         with open(file_path, 'r', encoding='utf-8') as file:
             return file.read().strip()
@@ -246,6 +310,17 @@ class ExamQuestionsGenerator:
                 learning_objectives=learning_objectives_text,
                 learning_objectives_json=learning_objectives_json
             )
+
+            # Append uniqueness/diversity constraints (no recent prior list)
+            constraints = (
+                "\n\nConstraints:\n"
+                "- Produce unique, non-overlapping questions within this batch.\n"
+                "- Avoid paraphrases or minor variants of prior items.\n"
+                "- Cover diverse subtopics, skills, and difficulty levels.\n"
+                "- Vary formats (MCQ, short answer, reasoning) when appropriate.\n"
+                f"- Use a different angle because run_seed={self.run_seed}.\n"
+            )
+            user_prompt = user_prompt + constraints
             
             print(f"      🔍 Generating {num_questions} questions for unit: {unit_name} (test_type={test_type or 'unspecified'})")
             
@@ -255,7 +330,11 @@ class ExamQuestionsGenerator:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 model=self.model,
-                temperature=self.temperature
+                temperature=self.temperature,
+                top_p=self.top_p,
+                presence_penalty=self.presence_penalty,
+                frequency_penalty=self.frequency_penalty,
+                seed=int(self.run_seed.split('_')[-1]) if self.provider == "grok" else None
             )
             
             if response is None:
@@ -339,8 +418,18 @@ class ExamQuestionsGenerator:
                 topics = unit.get('topics', [])
                 for topic in topics:
                     objectives = topic.get('objectives', [])
-                    learning_objectives = [obj.get('description', '') for obj in objectives if obj.get('description')]
+                    # Handle both string and dict formats
+                    learning_objectives = []
+                    for obj in objectives:
+                        if isinstance(obj, str):
+                            learning_objectives.append(obj)
+                        elif isinstance(obj, dict):
+                            desc = obj.get('description', '')
+                            if desc:
+                                learning_objectives.append(desc)
                     unit_learning_objectives.extend(learning_objectives)
+                # Shuffle objectives to encourage variety
+                random.shuffle(unit_learning_objectives)
                 
                 # Generate questions for this unit
                 questions = self.generate_questions(
@@ -352,7 +441,36 @@ class ExamQuestionsGenerator:
                 )
                 
                 if questions:
-                    all_questions.append(questions)
+                    # Dedupe across runs and within batch; regenerate if shortfall
+                    unit_items = list(questions.get('questions', []))
+                    unit_items = self._dedupe_questions_by_hash(subject, unit_items)
+                    deficit = max(0, num_questions - len(unit_items))
+                    retries = 0
+                    while deficit > 0 and retries < self.max_retries_per_item:
+                        regen = self.generate_questions(
+                            subject=subject,
+                            unit_name=current_unit_name,
+                            learning_objectives=unit_learning_objectives,
+                            num_questions=deficit,
+                            test_type=test_type
+                        )
+                        regen_items = list(regen.get('questions', [])) if regen else []
+                        regen_items = self._dedupe_questions_by_hash(subject, regen_items)
+                        # merge
+                        unit_items.extend(regen_items)
+                        # trim to desired
+                        if len(unit_items) > num_questions:
+                            unit_items = unit_items[:num_questions]
+                        deficit = max(0, num_questions - len(unit_items))
+                        retries += 1
+                    # replace questions in set
+                    deduped_set = dict(questions)
+                    deduped_set['questions'] = unit_items
+                    # Update local seen set with committed items
+                    for item in unit_items:
+                        if isinstance(item, dict) and isinstance(item.get('hash'), str):
+                            self._seen_hashes.add(item['hash'])
+                    all_questions.append(deduped_set)
                 else:
                     print(f"⚠️  Failed to generate questions for unit: {current_unit_name}")
             else:
@@ -360,6 +478,12 @@ class ExamQuestionsGenerator:
         
         if all_questions:
             print(f"\n✅ Generated questions for {len(all_questions)} unit(s)")
+            # Persist seen set for future runs
+            try:
+                with open(self.seen_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(sorted(self._seen_hashes), f, indent=2)
+            except Exception:
+                pass
             return all_questions
         else:
             print("❌ Failed to generate any questions")
@@ -438,6 +562,12 @@ def save_questions_to_mongodb(questions: List[Dict[str, Any]], mongo_ops: MongoO
                     question['question_type'] = "tests"
                     if 'test_type' not in question and question_data.get('test_type'):
                         question['test_type'] = question_data['test_type']
+                    # Add uniqueness fields
+                    try:
+                        canonical = ExamQuestionsGenerator._canonicalize_question_text(question)
+                        question['hash'] = ExamQuestionsGenerator._compute_hash(canonical)
+                    except Exception as _:
+                        pass
                     
                     # Save individual question to MongoDB
                     question_id = mongo_ops.save_question(question)
@@ -453,9 +583,9 @@ def save_questions_to_mongodb(questions: List[Dict[str, Any]], mongo_ops: MongoO
 
 def main():
     # Set your parameters here
-    subject = "SAT Math"  # Change this to your desired subject
+    subject = "AP Physics 2"  # Change this to your desired subject
     model = "grok-3-latest"  # Change this to your desired model
-    temperature = 0.4  # Change this to your desired temperature
+    temperature = 0.7  # Change this to your desired temperature
     output_file = None  # Change this to your desired output file path (or None for auto-generated)
     provider = "grok"  # Change this to your desired provider
     total_questions = 44  # Change this to your desired total number of questions

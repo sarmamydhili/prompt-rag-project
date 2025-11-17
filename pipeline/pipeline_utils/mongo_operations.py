@@ -10,6 +10,8 @@ class MongoOperations:
         self.course_framework_collection = self.mongo_db[DBConfig.MONGO_COURSE_FRAMEWORK_COLLECTION]
         self.output_collection = self.mongo_db[DBConfig.MONGO_OUTPUT_COLLECTION]
 
+    # Note: recent meta/hash helpers removed per simplified design (seed-only + local seen list)
+
     def get_questions_by_skill(self, skill_name: Optional[str] = None, skill: Optional[str] = None, limit: Optional[int] = None) -> List[Dict]:
         """
         Get questions from MongoDB filtered by skill_name or skill

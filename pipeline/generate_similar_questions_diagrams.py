@@ -561,8 +561,8 @@ def main():
     # generate_similar_questions_from_file()
     
     # Try to get a question document by ID
-    #generate_diagram_for_question_id("6850d4dbfeff49e44a5324f8")
-    generate_diagrams_for_skill("Vector Calculus")
+    generate_diagram_for_question_id("691a6f438b3b880df989d04d")
+    #generate_diagrams_for_skill("Vector Calculus")
     #generate_diagrams_for_subject("AP Physics C: Electricity and Magnetism", "tests")
     #generate_diagrams_for_subject("AP Microeconomics")
     #generate_diagrams_for_skill("Problem Solving and Data Analysis")

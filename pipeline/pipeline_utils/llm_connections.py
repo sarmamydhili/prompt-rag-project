@@ -205,7 +205,7 @@ class LLMConnections:
         with open("output_question.png", "wb") as f:
             f.write(image_bytes)
    
-    def call_llm_api(self, provider: str, system_prompt: str, user_prompt: str, model: Optional[str] = None, temperature: Optional[float] = None) -> Optional[str]:
+    def call_llm_api(self, provider: str, system_prompt: str, user_prompt: str, model: Optional[str] = None, temperature: Optional[float] = None, top_p: Optional[float] = None, presence_penalty: Optional[float] = None, frequency_penalty: Optional[float] = None, seed: Optional[int] = None) -> Optional[str]:
         """
         Call the appropriate LLM API based on the provider
         Args:
@@ -222,15 +222,15 @@ class LLMConnections:
 
         try:
             if provider == "openai":
-                return self._call_openai_api(system_prompt, user_prompt, model=selected_model, temperature=temperature)
+                return self._call_openai_api(system_prompt, user_prompt, model=selected_model, temperature=temperature, top_p=top_p, presence_penalty=presence_penalty, frequency_penalty=frequency_penalty)
             elif provider == "anthropic":
                 return self._call_anthropic_api(system_prompt, user_prompt, model=selected_model, temperature=temperature)
             elif provider == "gemini":
                 return self._call_gemini_api(system_prompt, user_prompt, model=selected_model, temperature=temperature)
             elif provider == "deepseek":
-                return self._call_deepseek_api(system_prompt, user_prompt, model=selected_model, temperature=temperature)
+                return self._call_deepseek_api(system_prompt, user_prompt, model=selected_model, temperature=temperature, top_p=top_p)
             elif provider == "grok":
-                return self._call_grok_api(system_prompt, user_prompt, model=selected_model, temperature=temperature)
+                return self._call_grok_api(system_prompt, user_prompt, model=selected_model, temperature=temperature, top_p=top_p, seed=seed)
             else:
                 print(f"Unsupported provider: {provider}")
                 return None
@@ -238,7 +238,7 @@ class LLMConnections:
             print(f"Error calling {provider} API: {e}")
             return None
 
-    def _call_openai_api(self, system_prompt, user_prompt, model=None, temperature=0.0):
+    def _call_openai_api(self, system_prompt, user_prompt, model=None, temperature=0.0, top_p: Optional[float] = None, presence_penalty: Optional[float] = None, frequency_penalty: Optional[float] = None):
         """
         Private method to call the OpenAI API.
         """
@@ -246,13 +246,16 @@ class LLMConnections:
             print('Calling OpenAI API for content generation...')
             client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
             completion = client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=temperature
-                )
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=temperature,
+                top_p=top_p,
+                presence_penalty=presence_penalty,
+                frequency_penalty=frequency_penalty
+            )
             
             print('OpenAI API call successful.')
             ai_response_content = completion.choices[0].message.content
@@ -286,7 +289,7 @@ class LLMConnections:
             print(f"Error during Gemini API call or processing: {e}")
             return None
 
-    def _call_deepseek_api(self, system_prompt, user_prompt, model=None, temperature=0.0):
+    def _call_deepseek_api(self, system_prompt, user_prompt, model=None, temperature=0.0, top_p: Optional[float] = None):
         """
         Private method to call the DeepSeek API.
         """
@@ -303,7 +306,8 @@ class LLMConnections:
                 stream=False,
                 timeout=30,
                 max_tokens=1000,
-                temperature=temperature
+                temperature=temperature,
+                top_p=top_p
             )
             print('DeepSeek API call successful.')
             ai_response_content = completion.choices[0].message.content
@@ -341,7 +345,7 @@ class LLMConnections:
             print(f"Error during Anthropic API call or processing: {e}")
             return None
 
-    def _call_grok_api(self, system_prompt, user_prompt, model='grok-3', temperature=0.0):
+    def _call_grok_api(self, system_prompt, user_prompt, model='grok-3', temperature=0.0, top_p: Optional[float] = None, seed: Optional[int] = None):
         """
         Private method to call the Grok API.
         """
@@ -357,7 +361,9 @@ class LLMConnections:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=temperature
+                temperature=temperature,
+                top_p=top_p,
+                seed=seed
             )
             print('Grok API call successful.')
             ai_response_content = completion.choices[0].message.content
