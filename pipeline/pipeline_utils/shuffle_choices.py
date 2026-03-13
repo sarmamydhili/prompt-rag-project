@@ -72,13 +72,13 @@ def shuffle_questions(collection, subject_filter):
 def main():
     """Main method with hardcoded configuration"""
     # Hardcoded configuration
-    prod_connection_string = "mongodb://admin:NewSecurePassword123!@3.128.97.182:27017/?authSource=admin"
+    #prod_connection_string = "mongodb://admin:NewSecurePassword123!@3.128.97.182:27017/?authSource=admin"
     local_connection_string = "mongodb://localhost:27017"
     
-    connection_string = prod_connection_string
+    connection_string = local_connection_string
     database_name = "adaptive_learning_docs"
-    collection_name = "dryrun_questions"
-    subject_filter = "AP Calculus AB"
+    collection_name = "ap_preCalculus"
+    subject_filter = "AP PreCalculus"
     
     print(f"Connecting to MongoDB...")
     print(f"Connection: {connection_string}")

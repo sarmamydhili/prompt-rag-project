@@ -48,8 +48,10 @@ generated_questions/
 *.log
 logs/
 diagram*.*
+*.png
 
 # OS
 .DS_Store
 Thumbs.db
 generated_diagrams/diagram_6881b8d2e89d06c5e6da3b5e.png
+generated_diagrams/old diagrams/archive/g2.5_diagram_6950c9b04a5952d91abc99ea.png

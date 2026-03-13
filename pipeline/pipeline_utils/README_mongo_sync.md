@@ -2,98 +2,112 @@
 
 ## Overview
 
-The `mongo_sync.py` script provides a robust way to synchronize documents from a development MongoDB instance to a production instance. It includes comprehensive error handling, batch processing, and proper resource management.
+The `mongo_sync.py` script syncs **delta** records from MongoDB **Staging** (source) to **Production** (target). Only documents whose `_id` is not already in the target are copied. It is generic over database and collection and supports env vars and CLI.
 
-## Key Improvements
+Use case: sync the `hints_and_answers` collection (or any collection) from Staging to Prod.
 
-### ✅ Fixed Issues
-- **Error Handling**: Added comprehensive try-catch blocks for all database operations
-- **Resource Management**: Proper connection cleanup with `close_connections()`
-- **Fixed Bug**: Removed incorrect `new_docs.retrieved` attribute access
-- **Security**: Moved hardcoded credentials to environment variables
-- **Memory Efficiency**: Added batch processing for large datasets
-- **Logging**: Replaced print statements with proper logging
+## Key Features
 
-### ✅ New Features
-- **Class-based Design**: More maintainable and testable code structure
-- **Configuration**: Environment variable support for database connections
-- **Batch Processing**: Configurable batch size for memory efficiency
-- **Progress Tracking**: Detailed logging of sync progress
-- **Partial Failure Handling**: Continues sync even if some documents fail
-- **Connection Testing**: Validates database connections before operations
+- **Delta sync**: Copies only documents missing in target (by `_id`)
+- **Generic**: Any database and collection via constructor, env, or CLI
+- **No hardcoded credentials**: Staging and Prod URIs from env (or CLI)
+- **Batch processing**: Configurable batch size; continues on partial failures
+- **Clear naming**: Source = Staging, Target = Production
 
 ## Usage
 
 ### 1. Environment Configuration
 
-Create a `.env` file in your project root:
+Create a `.env` file in your project root. Use **full URI** or **URL + user + password**:
 
 ```bash
-# Development MongoDB URI
-DEV_MONGO_URI=mongodb://localhost:27017
+# --- Staging (source) ---
+# Option A: full URI
+STAGING_MONGO_URI=mongodb://user:password@staging-host:27017/adaptive_learning_docs
 
-# Production MongoDB URI (include credentials if needed)
-PROD_MONGO_URI=mongodb://username:password@3.128.97.182:27017
+# Option B: separate URL and credentials
+# STAGING_MONGO_URL=staging-host:27017/adaptive_learning_docs
+# STAGING_MONGO_USER=user
+# STAGING_MONGO_PASSWORD=password
 
-# Optional: Override default database and collection
+# --- Production (target) ---
+# Option A: full URI (recommended; set Prod URL, user, password here)
+PROD_MONGO_URI=mongodb://produser:prodpass@prod-host:27017/adaptive_learning_docs
+
+# Option B: separate URL and credentials
+# PROD_MONGO_URL=prod-host:27017/adaptive_learning_docs
+# PROD_MONGO_USER=produser
+# PROD_MONGO_PASSWORD=prodpass
+
+# --- Optional: database and collection (defaults below) ---
 # MONGO_DATABASE=adaptive_learning_docs
-# MONGO_COLLECTION=dryrun_questions
+# MONGO_COLLECTION=hints_and_answers
 ```
 
-### 2. Basic Usage
+### 2. Sync `hints_and_answers` (default collection)
+
+```bash
+# Uses MONGO_COLLECTION=hints_and_answers and MONGO_DATABASE from .env
+python pipeline/pipeline_utils/mongo_sync.py
+```
+
+### 3. Command line options
+
+```bash
+# Explicit collection and database
+python pipeline/pipeline_utils/mongo_sync.py --collection hints_and_answers --database adaptive_learning_docs
+
+# Shorthand
+python pipeline/pipeline_utils/mongo_sync.py -c hints_and_answers -d adaptive_learning_docs
+
+# Custom batch size
+python pipeline/pipeline_utils/mongo_sync.py -c hints_and_answers --batch-size 500
+
+# Override URIs from command line (no env needed)
+python pipeline/pipeline_utils/mongo_sync.py --staging-uri "mongodb://..." --prod-uri "mongodb://..."
+```
+
+### 4. Use as a module
 
 ```python
 from pipeline.pipeline_utils.mongo_sync import MongoSync
 
-# Use default configuration
+# Default: collection=hints_and_answers, database=adaptive_learning_docs
 sync_util = MongoSync()
 synced_count = sync_util.sync_documents()
-print(f"Synced {synced_count} documents")
-```
 
-### 3. Custom Configuration
-
-```python
-# Custom database connections
+# Custom collection/database and URIs
 sync_util = MongoSync(
-    dev_uri="mongodb://dev-server:27017",
-    prod_uri="mongodb://prod-server:27017",
-    database="my_database",
-    collection="my_collection"
+    source_uri="mongodb://staging-host:27017",
+    target_uri="mongodb://produser:prodpass@prod-host:27017/adaptive_learning_docs",
+    database="adaptive_learning_docs",
+    collection="hints_and_answers",
 )
-
-# Custom batch size
 synced_count = sync_util.sync_documents(batch_size=500)
-```
-
-### 4. Command Line Usage
-
-```bash
-python pipeline/pipeline_utils/mongo_sync.py
 ```
 
 ## Error Handling
 
-The script handles various error scenarios:
+The script handles:
 
-- **Connection Failures**: Logs error and exits gracefully
-- **Authentication Errors**: Proper error messages for credential issues
-- **Partial Insert Failures**: Continues sync even if some documents fail
-- **Network Timeouts**: Configurable timeout settings
-- **Keyboard Interrupt**: Graceful shutdown on Ctrl+C
+- **Connection failures**: Logs and exits gracefully
+- **Authentication errors**: Clear messages for credential issues
+- **Partial insert failures**: Continues sync; logs failed count
+- **Network timeouts**: 5s server selection timeout
+- **Keyboard interrupt**: Graceful shutdown on Ctrl+C
 
 ## Logging
 
-The script provides detailed logging with timestamps:
+Example output:
 
 ```
-2024-01-15 10:30:15 - INFO - Connecting to development database...
-2024-01-15 10:30:16 - INFO - Connecting to production database...
-2024-01-15 10:30:16 - INFO - Successfully connected to both databases
-2024-01-15 10:30:17 - INFO - Found 1500 existing documents in production
-2024-01-15 10:30:18 - INFO - Found 250 new documents to sync
-2024-01-15 10:30:19 - INFO - Synced batch of 250 documents. Total: 250
-2024-01-15 10:30:19 - INFO - Sync completed. Total documents synced: 250
+... - INFO - Connecting to source (staging) database...
+... - INFO - Connecting to target (production) database...
+... - INFO - Successfully connected to both databases
+... - INFO - Found 1500 existing documents in target (adaptive_learning_docs.hints_and_answers)
+... - INFO - Found 250 new documents to sync (collection: hints_and_answers)
+... - INFO - Synced batch of 250 documents. Total: 250
+... - INFO - Sync completed. Total documents synced: 250 (collection: hints_and_answers)
 ```
 
 ## Performance Considerations
@@ -103,12 +117,20 @@ The script provides detailed logging with timestamps:
 - **Connection Pooling**: Proper connection management
 - **Indexed Queries**: Uses `_id` field for efficient lookups
 
-## Security Best Practices
+## Production URL, user and password
 
-1. **Environment Variables**: Never hardcode credentials
-2. **Network Security**: Use VPN or firewall rules for production access
-3. **Authentication**: Always use authentication for production databases
-4. **Connection Strings**: Use connection strings with proper encoding
+Do **not** put Production URL, user or password in code. Set them in `.env`:
+
+- **Recommended**: `PROD_MONGO_URI=mongodb://USER:PASSWORD@HOST:PORT/DATABASE`
+- Or: `PROD_MONGO_URL`, `PROD_MONGO_USER`, `PROD_MONGO_PASSWORD` (script builds the URI)
+
+Keep `.env` out of version control (e.g. in `.gitignore`).
+
+## Security
+
+1. Use environment variables (or `--prod-uri` / `--staging-uri` at runtime); never hardcode credentials.
+2. Use authentication for both Staging and Production.
+3. Restrict network access to Prod (VPN/firewall) where possible.
 
 ## Troubleshooting
 

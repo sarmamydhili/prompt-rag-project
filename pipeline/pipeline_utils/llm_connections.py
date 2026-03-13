@@ -101,6 +101,55 @@ class LLMConnections:
             print(f"❌ Error during GPT-1 image generation or download")
             return None
 
+    def generate_diagram_gemini(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams", filename: str = None):
+        """
+        Generates an image using Google Gemini (gemini-2.5-flash-image), saves it to a directory.
+        API key: set GEMINI_API_KEY in your .env (same file/location as OPENAI_API_KEY).
+        Args:
+            prompt: The text prompt to send to Gemini.
+            size: Unused; kept for compatibility with generate_diagram_openai.
+            output_dir: The directory where the generated image will be saved.
+            filename: Custom filename for the image (optional). If not provided, uses "generated_diagram.png".
+        Returns:
+            The file path of the saved image or None if an error occurred.
+        """
+        try:
+            from google.genai import Client as GenAIClient
+
+            client = GenAIClient(api_key=GEMINI_API_KEY)
+
+            response = client.models.generate_content(
+                #model="gemini-2.5-flash-image",
+                model="gemini-3-pro-image-preview",
+                contents=[prompt],
+            )
+
+            parts = getattr(response, "parts", None)
+            if parts is None and getattr(response, "candidates", None):
+                parts = response.candidates[0].content.parts
+            parts = parts or []
+
+            for part in parts:
+                if getattr(part, "inline_data", None) is not None:
+                    image = part.as_image()
+                    os.makedirs(output_dir, exist_ok=True)
+                    if filename:
+                        if not filename.endswith(".png"):
+                            filename += ".png"
+                        filepath = os.path.join(output_dir, filename)
+                    else:
+                        filepath = os.path.join(output_dir, "generated_diagram.png")
+                    image.save(filepath)
+                    print(f"✅ Image saved to {filepath}")
+                    return filepath
+
+            print("❌ No image data in Gemini response")
+            return None
+
+        except Exception as e:
+            print(f"❌ Error during Gemini image generation: {e}")
+            return None
+
     def generate_question_from_image_openai(self, prompt: str, size: str = "1024x1024", output_dir: str = "generated_diagrams"):
         """
         Generates a question from an image using GPT-1 , downloads it, and saves it to a specified directory.

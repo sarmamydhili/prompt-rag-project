@@ -679,7 +679,7 @@ def main():
     
     # Example usage - single topic
     result = generator.run_workflow(
-        subject="Calculus 3",
+        subject="AP Statistics",
         topic="*",
         provider="openai",
         model="gpt-4o",

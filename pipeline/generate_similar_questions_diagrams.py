@@ -19,14 +19,17 @@ INPUT_DIR = "data/input_questions"
 OUTPUT_DIR = "generated_questions/diagrams"
 
 # Diagram generation instruction
-#DIAGRAM_NO_SOLUTION_INSTRUCTION = "IMPORTANT: The diagram should illustrate the problem/scenario but should NOT show the solution or answer."
-DIAGRAM_NO_SOLUTION_INSTRUCTION = ""
+DIAGRAM_NO_SOLUTION_INSTRUCTION = "IMPORTANT: The diagram should illustrate the problem/scenario but should NOT show the solution or answer."
+#DIAGRAM_NO_SOLUTION_INSTRUCTION = ""
 
 # LLM Configuration - these can be parameterized
 DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "gpt-4"
 DEFAULT_TEMPERATURE = 0.7
 DEFAULT_NUM_QUESTIONS = 3  # Default number of questions to generate
+
+# Diagram image model: "gemini" (gemini-2.5-flash-image) or "openai" (GPT-1)
+DIAGRAM_IMAGE_PROVIDER = "openai"
 
 def load_prompt(filename):
     with open(os.path.join(PROMPT_DIR, filename), 'r') as f:
@@ -211,19 +214,26 @@ def generate_and_save_diagrams(result_data, base_output_dir):
     
     for i, question in enumerate(result_data['questions']):
         if question.get('requires_diagram') and question.get('diagram_gen_steps'):
-            print(f"🎨 Found diagram instructions for question {i+1}. Generating with GPT-1...")
+            gen_label = "Gemini" if DIAGRAM_IMAGE_PROVIDER == "gemini" else "GPT-1"
+            print(f"🎨 Found diagram instructions for question {i+1}. Generating with {gen_label}...")
             
             # Concatenate question text with diagram generation steps
             question_text = question.get('question', '')
             #diagram_steps = " ".join(question['diagram_gen_steps'])
             diagram_steps = " "
-            gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps}\n\n{DIAGRAM_NO_SOLUTION_INSTRUCTION}"
-            #gpt1_prompt = f"Question: {question_text}"
-            
-            result = llm_connections.generate_diagram_openai(
-                prompt=gpt1_prompt,
-                output_dir=diagram_output_dir
-            )
+            #gpt1_prompt = f"Question: {question_text}\n\nDiagram Instructions: {diagram_steps}\n\n{DIAGRAM_NO_SOLUTION_INSTRUCTION}"
+            gpt1_prompt = f"Question: {question_text}"
+
+            if DIAGRAM_IMAGE_PROVIDER == "gemini":
+                result = llm_connections.generate_diagram_gemini(
+                    prompt=gpt1_prompt,
+                    output_dir=diagram_output_dir
+                )
+            else:
+                result = llm_connections.generate_diagram_openai(
+                    prompt=gpt1_prompt,
+                    output_dir=diagram_output_dir
+                )
             
             if result is None:
                 print(f"❌ Diagram generation failed for question {i+1} - no image was generated")
@@ -257,7 +267,8 @@ def generate_diagram_for_question(question_doc, base_output_dir):
     question_text = question_doc.get('question_text', '') or question_doc.get('question', '')
     
     if requires_diagram:
-        print(f"🎨 Question requires diagram. Generating with GPT-1...")
+        gen_label = "Gemini" if DIAGRAM_IMAGE_PROVIDER == "gemini" else "GPT-1"
+        print(f"🎨 Question requires diagram. Generating with {gen_label}...")
         
         llm_connections = LLMConnections(config={})
         diagram_output_dir = os.path.join(base_output_dir)
@@ -277,12 +288,19 @@ def generate_diagram_for_question(question_doc, base_output_dir):
             # Generate diagram with custom filename
             doc_id = str(question_doc.get('_id', ''))
             filename = f"diagram_{doc_id}.png"
-            
-            result = llm_connections.generate_diagram_openai(
-                prompt=gpt1_prompt,
-                output_dir=diagram_output_dir,
-                filename=filename
-            )
+
+            if DIAGRAM_IMAGE_PROVIDER == "gemini":
+                result = llm_connections.generate_diagram_gemini(
+                    prompt=gpt1_prompt,
+                    output_dir=diagram_output_dir,
+                    filename=filename
+                )
+            else:
+                result = llm_connections.generate_diagram_openai(
+                    prompt=gpt1_prompt,
+                    output_dir=diagram_output_dir,
+                    filename=filename
+                )
             
             if result is None:
                 print(f"❌ Diagram generation failed for doc_id: {doc_id} - no image was generated")
@@ -545,12 +563,114 @@ def generate_diagrams_for_subject(subject=None, question_type=None):
     except Exception as e:
         logger.error(f"Error generating diagrams for subject '{subject}': {e}")
 
+def generate_diagrams_for_tests(subject=None, skill=None):
+    """
+    Generate diagrams for all test questions (question_type: "tests") in a specific subject and/or skill.
+    
+    Args:
+        subject: The subject name to filter questions by. Use "*", "no", "all", or None to get all test documents.
+        skill: The skill name to filter questions by. If provided, filters by both subject and skill.
+    """
+    logger.info(f"Generating diagrams for test questions in subject: {subject}, skill: {skill}")
+    
+    try:
+        db = get_connection_doc_db()
+        if db is None:
+            logger.error("Database connection failed")
+            return
+            
+        questions_collection = db['dryrun_questions']
+        
+        # Build query - always filter for question_type: "tests" and requires_diagram: True
+        query = {
+            "question_type": "tests",
+            "requires_diagram": True
+        }
+        
+        # Add subject filter if provided
+        if subject is not None and subject not in ["*", "no", "all"]:
+            query["subject"] = subject
+        
+        # Add skill filter if provided
+        if skill is not None and skill not in ["*", "no", "all"]:
+            query["skill"] = skill
+        
+        # Log the query being used
+        if subject is None or subject in ["*", "no", "all"]:
+            if skill is None or skill in ["*", "no", "all"]:
+                logger.info("Using wildcard parameters or None - getting all test documents that require diagrams")
+            else:
+                logger.info(f"Filtering by skill: {skill} and question_type: tests")
+        else:
+            if skill is None or skill in ["*", "no", "all"]:
+                logger.info(f"Filtering by subject: {subject} and question_type: tests")
+            else:
+                logger.info(f"Filtering by subject: {subject}, skill: {skill} and question_type: tests")
+        
+        # Find all matching documents
+        documents = list(questions_collection.find(query))
+        
+        if not documents:
+            if subject is None or subject in ["*", "no", "all"]:
+                if skill is None or skill in ["*", "no", "all"]:
+                    logger.warning("No test questions found that require diagrams")
+                else:
+                    logger.warning(f"No test questions found for skill '{skill}' that require diagrams")
+            else:
+                if skill is None or skill in ["*", "no", "all"]:
+                    logger.warning(f"No test questions found for subject '{subject}' that require diagrams")
+                else:
+                    logger.warning(f"No test questions found for subject '{subject}' and skill '{skill}' that require diagrams")
+            return
+            
+        logger.info(f"Found {len(documents)} test questions that require diagrams")
+        
+        # Set the output directory for test-based diagrams
+        test_output_dir = "generated_diagrams"
+        
+        # Ensure the output directory exists
+        os.makedirs(test_output_dir, exist_ok=True)
+        
+        # Process each question
+        for i, question_doc in enumerate(documents, 1):
+            print(f"\n{'='*60}")
+            print(f"Processing test question {i}/{len(documents)}")
+            print(f"{'='*60}")
+            
+            # Convert ObjectId to string for JSON serialization
+            if "_id" in question_doc:
+                question_doc["_id"] = str(question_doc["_id"])
+            
+            # Check if diagram already exists
+            doc_id = str(question_doc.get('_id', ''))
+            diagram_filename = f"diagram_{doc_id}.png"
+            diagram_path = os.path.join(test_output_dir, diagram_filename)
+            
+            if os.path.exists(diagram_path):
+                print(f"📁 Diagram already exists: {diagram_filename}")
+                print(f"⏭️  Skipping generation for question {doc_id}")
+                continue
+            else:
+                print(f"🆕 Diagram does not exist: {diagram_filename}")
+                print(f"🎨 Generating diagram for question {doc_id}")
+            
+            # Generate diagram for this question
+            generate_diagram_for_question(question_doc, test_output_dir)
+            
+        logger.info(f"✅ Completed diagram generation for {len(documents)} test questions")
+        
+    except Exception as e:
+        logger.error(f"Error generating diagrams for test questions in subject '{subject}', skill '{skill}': {e}")
+
 # === MAIN ===
 
 def main():
     """
     Main function to control script execution.
     """
+    global DIAGRAM_IMAGE_PROVIDER
+    DIAGRAM_IMAGE_PROVIDER = "gemini"  # Use Gemini (gemini-3-pro-image-preview) for diagram generation
+    #DIAGRAM_IMAGE_PROVIDER = "openai"  # Use OpenAI (gpt-image-1) for diagram generation
     # Uncomment the line below to debug database structure
     # check_database_structure()
     
@@ -559,10 +679,25 @@ def main():
     
     # Uncomment the line below to run the original file-based generation
     # generate_similar_questions_from_file()
+
+    # Question IDs to generate diagrams for
+    #QUESTION_IDS = [
+    #    "699b99210dac2cc1491f7965",
+    #    "699b99210dac2cc1491f796d",
+    #    "699b996b0dac2cc1491f797a"
+    #]
+
+    #for i, qid in enumerate(QUESTION_IDS, 1):
+    #    print(f"\n{'='*60}")
+    #    print(f"Processing question {i}/{len(QUESTION_IDS)}: {qid}")
+    #    print(f"{'='*60}")
+    #    generate_diagram_for_question_id(qid)
+
+    #generate_diagrams_for_tests("SAT Math", "Algebra")
     
-    # Try to get a question document by ID
-    generate_diagram_for_question_id("691a6f438b3b880df989d04d")
+    generate_diagrams_for_skill("Functions Involving Parameters, Vectors, and Matrices")
     #generate_diagrams_for_skill("Vector Calculus")
+    
     #generate_diagrams_for_subject("AP Physics C: Electricity and Magnetism", "tests")
     #generate_diagrams_for_subject("AP Microeconomics")
     #generate_diagrams_for_skill("Problem Solving and Data Analysis")
