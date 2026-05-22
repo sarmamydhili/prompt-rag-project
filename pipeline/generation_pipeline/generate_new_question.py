@@ -43,7 +43,7 @@ class GlobalContext:
 
         # Collection names will be loaded from task_config
         self.mongo_questions_collection = None  # For reading questions
-        self.mongo_output_collection_name = None  # For writing enhanced/generated questions
+        self.mongo_output_collection_name = None  # For writing generated questions
 
         # Add new attributes for Bloom's level specific prompts
         self.bloom_prompt_paths = {
@@ -563,54 +563,6 @@ class BaseWorkflow:
         self.llm_connections = LLMConnections(config=self.context.llm_model_params)
         print("✓ LLM connections initialized")
 
-    def get_prompts(self, parameters):
-        """Base method to be overridden by specific workflows"""
-        raise NotImplementedError("Subclasses must implement get_prompts method")
-
-    def write_content(self, contents):
-        """Write generated content to a JSON file or MongoDB based on output_mode."""
-        try:
-            if self.context.output_mode == "file":
-                # Create a single file for all questions
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                # Determine prefix based on workflow type
-                prefix = "enhanced_questions" if isinstance(self, QuestionEnhanceWorkflow) else "generated_questions"
-                filename = f"{prefix}_{timestamp}.json"
-                
-                os.makedirs("generated_questions", exist_ok=True)
-                filepath = os.path.join("generated_questions", filename)
-                
-                # Combine all contents into a single JSON array
-                all_questions = []
-                for content in contents:
-                    try:
-                        parsed_content = json.loads(content)
-                        if 'questions' in parsed_content:
-                            all_questions.extend(parsed_content['questions'])
-                    except json.JSONDecodeError:
-                        print(f"Warning: Could not parse content as JSON: {content}")
-                        continue
-                
-                # Write all questions to a single file
-                with open(filepath, 'w') as f:
-                    json.dump({"questions": all_questions}, f, indent=2)
-                #print(f"✅ All {prefix} written to file: {filepath}")
-
-            elif self.context.output_mode == "mongo":
-                print(f"Writing content to MongoDB")
-                for content in contents:
-                    parsed_content = json.loads(content)
-                    if 'questions' in parsed_content:
-                        for question in parsed_content['questions']:
-                            self.context.store_output_to_mongo(json.dumps([question]))
-
-            else:
-                raise ValueError(f"Invalid output_mode: {self.context.output_mode}")
-
-        except Exception as e:
-            print(f"❌ Error writing content: {str(e)}")
-            raise
-
 
 class QuestionGenerationWorkflow(BaseWorkflow):
     def __init__(self):
@@ -766,133 +718,8 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             raise
 
 
-class QuestionEnhanceWorkflow(BaseWorkflow):
-    def __init__(self):
-        super().__init__()
-        self.context = GlobalContext()
-        self.context.initialize()
-        # Initialize prompt builder with first Bloom's level (will be updated per level)
-        first_level = self.context.bloom_levels[0] if self.context.bloom_levels else 'Remembering'
-        system_path, user_path = self.context.get_prompt_paths_for_bloom_level(first_level)
-        self.prompt_builder = PromptBuilder(
-            system_prompt_template_path=system_path,
-            user_prompt_template_path=user_path
-        )
-
-    def get_prompts(self, parameters):
-        """
-        Override get_prompts to use enhancement-specific prompt creation
-        Args:
-            parameters: Dictionary containing parameters for prompt enhancement
-        Returns:
-            Tuple of (system_prompt, user_prompt) or (None, None) if failed
-        """
-        try:
-            return self.prompt_builder.create_enhance_prompts(parameters)
-        except Exception as e:
-            print(f"Error in get_prompts: {str(e)}")
-            return None, None
-
-    def enhance_question(self, question):
-        """Enhance a single question"""
-        try:
-            # Get skill details from SQL database
-            skill_data = self.context.sql_operations.get_skills_by_ids([question['skill_id']])
-            if not skill_data:
-                print(f"Warning: No skill data found for skill_id: {question['skill_id']}")
-                return None
-                
-            skill = skill_data[0]  # Get the first (and should be only) skill
-            
-            # Format learning objectives from additional details
-            learning_objectives, skill_topic = self.context._format_learning_objectives(skill)
-            
-            # Prepare parameters for the prompts
-            parameters = {
-                'question': question['question'],
-                'subject': question['subject'],
-                'subject_id': question.get('subject_id'),
-                'subject_area': question['subject_area'],
-                'subject_area_id': question.get('subject_area_id'),
-                'skill': question['skill'],
-                'skill_name': question['skill_name'],
-                'skill_id': question['skill_id'],
-                'multiple_choices': question['multiple_choices'],
-                'correct_answer': question['correct_answer'],
-                'level': question['level'],
-                'level_num': question['level_num'],
-                'requires_diagram': question.get('requires_diagram', False),
-                'learning_objectives': learning_objectives,
-                'skill_topic': skill_topic
-            }
-            
-            # Get prompts using the overridden get_prompts method
-            system_prompt, user_prompt = self.get_prompts(parameters)
-            if system_prompt is None or user_prompt is None:
-                print(f"Failed to get prompts for question: {question['question']}")
-                return None
-
-            # Generate enhanced content
-            enhanced_content = self.context.generate_content_from_llm(system_prompt, user_prompt, self.llm_connections)
-            if enhanced_content is None:
-                print(f"Failed to enhance question: {question['question']}")
-                return None
-
-            return enhanced_content
-            
-        except Exception as e:
-            print(f"Error enhancing question: {str(e)}")
-            return None
-
-    def run(self):
-        try:
-            print("Starting Question Enhancement Workflow...")
-            
-            # Get questions for specific skill
-            pskill = "Infinite Sequences and Series"
-            questions = self.context.mongo_operations.get_questions_by_skill(skill=pskill, limit=None)
-            print(f"Found {len(questions)} questions for skill: {pskill}")
-            
-            # Process each question
-            enhanced_contents = []
-            for question in questions:
-                enhanced_content = self.enhance_question(question)
-                if enhanced_content:
-                    #print(f"***Enhanced content: {enhanced_content}")
-                    enhanced_contents.append(enhanced_content)
-                    print(f"Successfully enhanced question: {question['question']}")
-                else:
-                    print(f"Failed to enhance question: {question['question']}")
-            
-            # Write enhanced content
-            if enhanced_contents:
-                print("\nWriting enhanced content...")
-                self.write_content(enhanced_contents)
-                print(f"✅ Successfully enhanced and wrote {len(enhanced_contents)} questions")
-            else:
-                print("❌ No questions were successfully enhanced")
-                
-            print("✅ Question Enhancement Completed.")
-
-        except Exception as e:
-            print(f"❌ Error in enhancement workflow: {str(e)}")
-            raise   
-
-
 def main():
-    # Initialize context to get workflow type
-    context = GlobalContext()
-    context.initialize()
-    
-    # Get workflow type from context
-    workflow_type = getattr(context, 'workflow_type', 'generate')  # Default to 'generate' if not specified
-    print(f"Running workflow type: {workflow_type}")
-    
-    if workflow_type == "generate":
-        workflow = QuestionGenerationWorkflow()
-    else:
-        workflow = QuestionEnhanceWorkflow()
-        
+    workflow = QuestionGenerationWorkflow()
     workflow.run()
 
 if __name__ == '__main__':
