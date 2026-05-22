@@ -19,8 +19,9 @@ import math
 import hashlib
 import random
 
-# Add the pipeline directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'pipeline'))
+PIPELINE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(PIPELINE_DIR)
+sys.path.insert(0, PROJECT_ROOT)
 
 from pipeline.pipeline_utils.llm_connections import LLMConnections
 from pipeline.pipeline_utils.mongo_operations import MongoOperations
@@ -56,7 +57,7 @@ class ExamQuestionsGenerator:
         self.uniqueness_mongo_collection = uniqueness_mongo_collection
         self.hash_field = hash_field
         self.embedding_field = embedding_field
-        self.seen_file_path = "seen_questions.json"
+        self.seen_file_path = os.path.join(PROJECT_ROOT, "seen_questions.json")
         # Run seed to influence variation
         self.run_seed = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000,9999)}"
         # Load local seen hashes
@@ -88,8 +89,9 @@ class ExamQuestionsGenerator:
         self.mongo_ops = MongoOperations()
         
         # Prompt file paths
-        self.system_prompt_path = "pipeline/prompts/exam_generation_system_prompt.txt"
-        self.user_prompt_path = "pipeline/prompts/exam_generation_user_prompt.txt"
+        prompts_dir = os.path.join(PIPELINE_DIR, "prompts")
+        self.system_prompt_path = os.path.join(prompts_dir, "exam_generation_system_prompt.txt")
+        self.user_prompt_path = os.path.join(prompts_dir, "exam_generation_user_prompt.txt")
         
         # Validate prompt files exist
         self._validate_prompt_files()
@@ -524,8 +526,12 @@ class ExamQuestionsGenerator:
     def save_questions_to_file(self, questions: List[Dict[str, Any]], filename: str = None):
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"generated_exam_questions/exam_questions_{timestamp}.json"
-        
+            filename = os.path.join(
+                PROJECT_ROOT,
+                "generated_exam_questions",
+                f"exam_questions_{timestamp}.json",
+            )
+
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         
         try:
