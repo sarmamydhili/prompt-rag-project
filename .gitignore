@@ -43,6 +43,7 @@ data/
 
 # Generated Questions
 generated_questions/
+pipeline/generation_pipeline/generation_batches/
 
 # Logs
 *.log
