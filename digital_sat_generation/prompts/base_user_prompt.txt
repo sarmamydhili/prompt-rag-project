@@ -1,0 +1,20 @@
+Generate {count} original Digital SAT Reading and Writing question(s).
+
+Parameters:
+- Domain: {domain}
+- Skill: {skill}
+- Difficulty: {difficulty}
+- Subject area (content context): {subject_area}
+
+{difficulty_instructions}
+
+{answer_position_section}
+
+{skill_instructions}
+
+{retry_section}
+
+Return strict JSON with a top-level "questions" array containing exactly {count} question object(s).
+Each question must use domain "{domain}", skill "{skill}", difficulty "{difficulty}", and subject_area "{subject_area}".
+
+Do not include IDs, timestamps, hashes, status, or model metadata in the JSON.

@@ -1,0 +1,10 @@
+Review this Digital SAT Reading and Writing question:
+
+Domain: {domain}
+Skill: {skill}
+Difficulty: {difficulty}
+
+Question JSON:
+{question_json}
+
+Return strict JSON: {{"approved": boolean, "issues": ["..."], "confidence": number between 0 and 1}}

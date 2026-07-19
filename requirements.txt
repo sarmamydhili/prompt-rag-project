@@ -8,7 +8,8 @@ pymongo==4.8.0
 mysql-connector-python==9.2.0
 
 # LLM API dependencies
-openai==1.12.0
+openai>=2.0.0
+httpx>=0.27.0,<0.29.0
 google-generativeai==0.8.4
 google-genai>=1.10.0
 anthropic==0.49.0
@@ -23,3 +24,6 @@ PyMuPDF==1.24.9
 # Typing and utilities
 typing-extensions==4.12.2
 pydantic==2.8.2
+
+# Testing
+pytest==8.3.4
