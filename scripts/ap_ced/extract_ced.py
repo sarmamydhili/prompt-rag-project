@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI: extract AP CED PDFs into course_framework JSON (optional Mongo insert)."""
+"""Extract AP CED PDF → course_framework JSON (optional MongoDB insert)."""
 
 from __future__ import annotations
 
@@ -7,180 +7,94 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import List, Optional
 
-project_root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(project_root))
+_SCRIPTS = Path(__file__).resolve().parents[1]
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
 
-from scripts.ap_ced.config import ExtractOptions, get_subject_config, list_subjects
-from scripts.ap_ced.mongo import upsert_course_framework
-from scripts.ap_ced.parser import extract_from_pdf
+from ap_ced.mongo import insert_course_framework, load_framework_json
+from ap_ced.parser import extract_from_pdf
 
 
-def parse_units(raw: str | None) -> list[int] | None:
+def parse_units(raw: Optional[str]) -> Optional[List[int]]:
     if not raw:
         return None
-    return [int(part.strip()) for part in raw.split(",") if part.strip()]
+    return [int(x.strip()) for x in raw.split(",") if x.strip()]
 
 
-def summarize(payload: dict) -> str:
-    total_topics = sum(len(unit["topics"]) for unit in payload["units"])
-    total_los = sum(
-        len(topic["objectives"]) for unit in payload["units"] for topic in unit["topics"]
-    )
-    total_ek = sum(
-        len(obj.get("essential_knowledge", []))
-        for unit in payload["units"]
-        for topic in unit["topics"]
-        for obj in topic["objectives"]
-    )
-    total_scenarios = sum(len(unit.get("scenarios", [])) for unit in payload["units"])
-    return (
-        f"subject={payload['subject']} units={len(payload['units'])} "
-        f"topics={total_topics} objectives={total_los} ek_items={total_ek} "
-        f"unit_scenarios={total_scenarios}"
-    )
-
-
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(
-        description=(
-            "Extract AP Course and Exam Description PDFs into course_framework JSON. "
-            "Optionally insert into MongoDB after you review/approve the JSON."
-        )
+        description="Extract AP CED PDF into course_framework JSON; optionally insert into MongoDB."
     )
+    parser.add_argument("--pdf", type=Path, default=None, help="Path to an AP CED PDF")
     parser.add_argument(
-        "--subject",
-        help=f"Registered subject slug. Known: {', '.join(list_subjects())}",
-    )
-    parser.add_argument("--pdf", type=Path, help="Path to CED PDF")
-    parser.add_argument("--out", type=Path, help="Output JSON path")
-    parser.add_argument(
-        "--from-json",
+        "--out",
         type=Path,
-        help="Skip PDF extraction; load an already-reviewed JSON file for Mongo insert",
-    )
-    parser.add_argument(
-        "--units",
         default=None,
-        help="Optional comma-separated unit numbers (default: all configured units)",
+        help="Output JSON path (default: <stem>_framework.json next to the PDF)",
     )
-    parser.add_argument(
-        "--no-skill-categories",
-        action="store_true",
-        help="Omit skill_categories root field and objective.skill_category",
-    )
-    parser.add_argument(
-        "--no-essential-knowledge",
-        action="store_true",
-        help="Omit essential_knowledge arrays under objectives",
-    )
-    parser.add_argument(
-        "--no-unit-scenarios",
-        action="store_true",
-        help="Omit unit-level scenarios arrays",
-    )
-    parser.add_argument(
-        "--no-topic-scenario-links",
-        action="store_true",
-        help="Omit topic.scenario connection IDs",
-    )
-    parser.add_argument(
-        "--no-weightage",
-        action="store_true",
-        help="Omit unit.weightage_percent",
-    )
-    parser.add_argument(
-        "--mongo",
-        action="store_true",
-        help="Insert/update the extracted (or --from-json) document in MongoDB",
-    )
+    parser.add_argument("--units", type=str, default=None, help="Comma-separated unit numbers, e.g. 1,2")
+    parser.add_argument("--mongo", action="store_true", help="Insert extracted document into MongoDB")
     parser.add_argument(
         "--replace",
         action="store_true",
-        help="With --mongo, replace an existing document for the same subject",
+        help="With --mongo, replace existing document for the same subject",
     )
     parser.add_argument(
-        "--mongo-db",
+        "--from-json",
+        type=Path,
         default=None,
-        help="Mongo DB name (default: adaptive_learning_docs or MONGO_DB_NAME)",
-    )
-    parser.add_argument(
-        "--mongo-collection",
-        default=None,
-        help="Mongo collection (default: course_framework)",
-    )
-    parser.add_argument(
-        "--list-subjects",
-        action="store_true",
-        help="List registered subject slugs and exit",
+        help="Skip PDF extract; load this JSON (use with --mongo to insert)",
     )
     args = parser.parse_args()
 
-    if args.list_subjects:
-        for slug in list_subjects():
-            print(slug)
-        return
+    if not args.from_json and not args.pdf:
+        parser.error("Provide --pdf, or --from-json (optionally with --mongo)")
 
-    # Mode A: insert previously approved JSON
     if args.from_json:
-        if not args.from_json.exists():
-            print(f"JSON not found: {args.from_json}", file=sys.stderr)
-            sys.exit(1)
-        with args.from_json.open(encoding="utf-8") as handle:
-            payload = json.load(handle)
-        print(f"Loaded {args.from_json}")
-        print(summarize(payload))
-        if args.out and args.out.resolve() != args.from_json.resolve():
-            args.out.parent.mkdir(parents=True, exist_ok=True)
-            with args.out.open("w", encoding="utf-8") as handle:
-                json.dump(payload, handle, indent=2)
-            print(f"Wrote {args.out}")
+        payload = load_framework_json(args.from_json)
+        out_path = args.out or args.from_json
     else:
-        if not args.subject or not args.pdf or not args.out:
-            parser.error(
-                "--subject, --pdf, and --out are required unless --list-subjects or --from-json"
-            )
         if not args.pdf.exists():
-            print(f"PDF not found: {args.pdf}", file=sys.stderr)
-            sys.exit(1)
-
-        config = get_subject_config(args.subject)
-        options = ExtractOptions(
-            include_skill_categories=not args.no_skill_categories,
-            include_essential_knowledge=not args.no_essential_knowledge,
-            include_unit_scenarios=not args.no_unit_scenarios,
-            include_topic_scenario_links=not args.no_topic_scenario_links,
-            include_weightage=not args.no_weightage,
-            units=parse_units(args.units),
+            print("PDF not found: {}".format(args.pdf), file=sys.stderr)
+            return 1
+        payload = extract_from_pdf(args.pdf, units=parse_units(args.units))
+        out_path = args.out or args.pdf.with_name("{}_framework.json".format(args.pdf.stem))
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
-        payload = extract_from_pdf(args.pdf, config, options)
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        with args.out.open("w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2)
-        print(f"Wrote {args.out}")
-        print(summarize(payload))
+        print("Wrote {}".format(out_path))
 
-    if not args.mongo:
-        if args.from_json:
-            print("Tip: add --mongo --replace to insert this approved JSON into MongoDB.")
-        return
-
-    result = upsert_course_framework(
-        payload,
-        replace=args.replace,
-        db_name=args.mongo_db,
-        collection_name=args.mongo_collection,
+    subjects = payload.get("subject", "?")
+    units = payload.get("units", [])
+    topics = sum(len(u.get("topics", [])) for u in units)
+    los = sum(len(t.get("objectives", [])) for u in units for t in u.get("topics", []))
+    eks = sum(
+        len(o.get("essential_knowledge", []))
+        for u in units
+        for t in u.get("topics", [])
+        for o in t.get("objectives", [])
     )
-    if result["action"] == "skipped":
-        print(result["message"])
-        print(f"Existing _id={result['_id']} db={result['db']}.{result['collection']}")
-        sys.exit(2)
-
+    scenarios = sum(len(u.get("scenarios", [])) for u in units)
+    print("Subject: {}".format(subjects))
     print(
-        f"Mongo {result['action']}: subject={result['subject']} "
-        f"_id={result['_id']} db={result['db']}.{result['collection']}"
+        "Units={} topics={} LOs={} EK={} scenarios={}".format(
+            len(units), topics, los, eks, scenarios
+        )
     )
+
+    if args.mongo:
+        result = insert_course_framework(payload, replace=args.replace)
+        print(
+            "MongoDB: {action} subject={subject} _id={id} db={db}.{collection}".format(
+                **result
+            )
+        )
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

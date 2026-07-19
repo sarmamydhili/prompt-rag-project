@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-import config
+try:
+    import config  # project root config, if on PYTHONPATH
+except ImportError:  # pragma: no cover
+    config = None  # type: ignore
 
 DEFAULT_DB = "adaptive_learning_docs"
 DEFAULT_COLLECTION = "course_framework"
@@ -23,10 +28,20 @@ def get_framework_mongo(
     load_dotenv()
     uri = mongo_uri or os.getenv("MONGODB_URI")
     if not uri:
-        server = os.getenv("MONGODB_SERVER", getattr(config, "MONGODB_SERVER", "127.0.0.1"))
-        port = os.getenv("MONGODB_PORT", getattr(config, "MONGODB_PORT", "27017"))
-        user = getattr(config, "MONGODB_USER", None) or os.getenv("MONGODB_USER")
-        password = getattr(config, "MONGODB_PASSWORD", None) or os.getenv("MONGODB_PASSWORD")
+        server = os.getenv(
+            "MONGODB_SERVER",
+            getattr(config, "MONGODB_SERVER", "127.0.0.1") if config else "127.0.0.1",
+        )
+        port = os.getenv(
+            "MONGODB_PORT",
+            str(getattr(config, "MONGODB_PORT", "27017")) if config else "27017",
+        )
+        user = (getattr(config, "MONGODB_USER", None) if config else None) or os.getenv(
+            "MONGODB_USER"
+        )
+        password = (
+            getattr(config, "MONGODB_PASSWORD", None) if config else None
+        ) or os.getenv("MONGODB_PASSWORD")
         if user and password:
             uri = f"mongodb://{user}:{password}@{server}:{port}/"
         else:
@@ -41,6 +56,10 @@ def get_framework_mongo(
     database = client[db_name]
     collection = database[collection_name]
     return client, database, collection
+
+
+def load_framework_json(path: Path) -> Dict[str, Any]:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def upsert_course_framework(
@@ -71,21 +90,20 @@ def upsert_course_framework(
             return {
                 "action": "skipped",
                 "subject": subject,
-                "_id": existing["_id"],
+                "id": existing["_id"],
                 "db": database.name,
                 "collection": collection.name,
                 "message": "Document already exists. Re-run with --replace to overwrite.",
             }
 
         if existing and replace:
-            # Preserve _id when replacing the rest of the document
             payload_to_save = dict(payload)
             payload_to_save["_id"] = existing["_id"]
             collection.replace_one({"_id": existing["_id"]}, payload_to_save)
             return {
                 "action": "replaced",
                 "subject": subject,
-                "_id": existing["_id"],
+                "id": existing["_id"],
                 "db": database.name,
                 "collection": collection.name,
             }
@@ -94,9 +112,13 @@ def upsert_course_framework(
         return {
             "action": "inserted",
             "subject": subject,
-            "_id": result.inserted_id,
+            "id": result.inserted_id,
             "db": database.name,
             "collection": collection.name,
         }
     finally:
         client.close()
+
+
+# CLI-friendly alias
+insert_course_framework = upsert_course_framework

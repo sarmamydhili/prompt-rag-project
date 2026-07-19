@@ -1,16 +1,11 @@
-"""AP CED extraction package."""
+"""AP CED PDF → course_framework extraction helpers."""
 
-from .config import ExtractOptions, SubjectConfig, get_subject_config, list_subjects
-from .mongo import upsert_course_framework
-from .parser import build_document, extract_from_pdf
+from .mongo import insert_course_framework, load_framework_json
+from .parser import derive_subject, extract_from_pdf
 
 __all__ = [
-    "ExtractOptions",
-    "SubjectConfig",
-    "build_document",
+    "derive_subject",
     "extract_from_pdf",
-    "get_subject_config",
-    "list_subjects",
-    "upsert_course_framework",
+    "insert_course_framework",
+    "load_framework_json",
 ]
-
