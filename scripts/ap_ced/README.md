@@ -9,6 +9,7 @@ Parse College Board AP Course and Exam Description (CED) PDFs into
 scripts/ap_ced/
   config.py              # SubjectConfig + ExtractOptions
   parser.py              # PDF extraction logic
+  mongo.py               # Optional MongoDB upsert helpers
   extract_ced.py         # CLI entrypoint
   subjects/
     cybersecurity.py     # AP Cybersecurity config
@@ -19,12 +20,35 @@ scripts/ap_ced/
 From the repo root:
 
 ```bash
-python scripts/ap_ced/extract_ced.py \
+# 1) Extract for review (no Mongo write)
+python3 scripts/ap_ced/extract_ced.py \
   --subject cybersecurity \
   --pdf "/path/to/ap-cybersecurity-course-and-exam-description.pdf" \
   --out data/ap_cybersecurity_course_framework.json \
   --units 1,2,3,4,5
+
+# 2) After approval, insert/replace in Mongo from the reviewed JSON
+python3 scripts/ap_ced/extract_ced.py \
+  --from-json data/ap_cybersecurity_course_framework.json \
+  --mongo --replace
 ```
+
+You can also extract and insert in one step after you are ready:
+
+```bash
+python3 scripts/ap_ced/extract_ced.py \
+  --subject cybersecurity \
+  --pdf "/path/to/ced.pdf" \
+  --out data/ap_cybersecurity_course_framework.json \
+  --mongo --replace
+```
+
+Defaults: DB `adaptive_learning_docs`, collection `course_framework`.
+Override with `--mongo-db` / `--mongo-collection`, or env `MONGO_DB_NAME` /
+`MONGO_COURSE_FRAMEWORK_COLLECTION` / `MONGODB_URI`.
+
+Without `--replace`, an existing subject document is left unchanged and the CLI
+exits with code 2.
 
 ### Optional sections
 
@@ -41,10 +65,8 @@ Other AP subjects may not include every CED feature. Toggle with flags:
 List registered subjects:
 
 ```bash
-python scripts/ap_ced/extract_ced.py --list-subjects --subject cybersecurity --pdf x --out x
+python3 scripts/ap_ced/extract_ced.py --list-subjects
 ```
-
-(or import `list_subjects()` from `scripts.ap_ced`).
 
 ## Adding another AP subject
 
@@ -59,4 +81,4 @@ and disabled on the CLI with the `--no-*` flags.
 
 ## Dependencies
 
-Uses `PyMuPDF` (`fitz`), already listed in repo `requirements.txt`.
+Uses `PyMuPDF` (`fitz`) and `pymongo`, already listed in repo `requirements.txt`.
