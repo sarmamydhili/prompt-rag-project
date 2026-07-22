@@ -100,8 +100,12 @@ class GlobalContext:
                 print(f"  - Questions collection: {self.mongo_questions_collection}")
                 print(f"  - Output collection: {self.mongo_output_collection_name}")
 
-            # Load all other configurations directly
+            # Load all other configurations directly.
+            # Skip [digital_sat] — it has its own loader and must not overwrite
+            # generation keys like llm_model / task_name.
             for section in config.sections():
+                if section == 'digital_sat':
+                    continue
                 for key, value in config.items(section):
                     if key not in ['mongo_questions_collection', 'mongo_output_collection']:  # Skip these as they're handled above
                         setattr(self, key, value)
@@ -440,9 +444,12 @@ class GlobalContext:
                     else:
                         questions_to_process = [parsed_json]
                 
+                model_name = self.get_resolved_model_name()
                 for question in questions_to_process:
                     if isinstance(question, dict):
                         try:
+                            if model_name:
+                                question['model_name'] = model_name
                             question['created_at'] = datetime.utcnow()
                             questions_collection.insert_one(question)
                         except Exception as e:
@@ -509,6 +516,17 @@ class GlobalContext:
                 print(f"DEBUG: Warning - One or both paths are None for {bloom_level}")
         
         raise ValueError(f"No prompt paths found for Bloom's level: {bloom_level}")
+
+    def get_resolved_model_name(self):
+        """
+        Return the concrete model id used for generation (e.g. grok-3-latest),
+        not the provider key (grok) and not LLM-invented labels.
+        """
+        provider = getattr(self, 'llm_model', None)
+        if not provider:
+            return None
+        concrete = getattr(self, f'{provider}_llm_model', None)
+        return concrete or provider
 
 
 def generate_content_with_llm(context, skill_topic_params, sample_questions_section, llm_connections, prompt_builder=None):
@@ -680,6 +698,16 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             print(f"❌ Error in main workflow: {str(e)}")
             raise
 
+    def _stamp_model_name(self, questions):
+        """Overwrite LLM-invented model_name with the actual configured model."""
+        model_name = self.context.get_resolved_model_name()
+        if not model_name:
+            return questions
+        for question in questions:
+            if isinstance(question, dict):
+                question['model_name'] = model_name
+        return questions
+
     def process_and_write_content(self, contents):
         """Process and write content based on output mode"""
         try:
@@ -689,7 +717,8 @@ class QuestionGenerationWorkflow(BaseWorkflow):
                     try:
                         parsed_content = json.loads(content)
                         if 'questions' in parsed_content:
-                            self.append_to_output_file(parsed_content['questions'])
+                            questions = self._stamp_model_name(parsed_content['questions'])
+                            self.append_to_output_file(questions)
                     except json.JSONDecodeError:
                         print(f"Warning: Could not parse content as JSON: {content}")
                         continue
@@ -701,7 +730,7 @@ class QuestionGenerationWorkflow(BaseWorkflow):
                     try:
                         parsed_content = json.loads(content)
                         if 'questions' in parsed_content:
-                            questions = parsed_content['questions']
+                            questions = self._stamp_model_name(parsed_content['questions'])
                             total_questions += len(questions)
                             for question in questions:
                                 self.context.store_output_to_mongo(json.dumps([question]))

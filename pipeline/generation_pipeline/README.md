@@ -5,9 +5,10 @@ Two ways to generate questions from `task_config.properties`:
 | Mode | Script | LLM calls |
 |------|--------|-----------|
 | Interactive | `generate_new_question.py` | Real-time via `LLMConnections` |
-| Batch prep | `prepare_generation_batch.py` | None — produces xAI JSONL for manual upload |
+| Batch prep | `prepare_generation_batch.py` | None — produces xAI JSONL |
+| Batch submit | `submit_generation_batch.py` | Uploads JSONL to xAI Batch API |
 
-Both use the same skill resolution, Bloom-level prompts, and `PromptBuilder` templates.
+Both prep and interactive use the same skill resolution, Bloom-level prompts, and `PromptBuilder` templates.
 
 ---
 
@@ -70,14 +71,29 @@ pipeline/generation_pipeline/generation_batches/
 
 The **manifest** maps each `custom_id` to skill/subject/Bloom metadata for a future results-import step.
 
-### Manual upload to xAI
+### Submit JSONL to xAI Batch API
 
-1. Run `prepare_generation_batch.py`
-2. Open [xAI Console → Batches](https://console.x.ai/team/default/batches)
-3. Upload the `.jsonl` file
-4. When complete, download the results JSONL
+Requires `XAI_API_KEY` in `.env` and `xai-sdk` (`pip install xai-sdk`).
 
-Phase 1 does not include automated submit or Mongo import. Use `generate_new_question.py` for immediate end-to-end runs, or process batch results manually until a results processor is added.
+**Important:** `grok-3-latest` is **not** supported for Batch. Use `grok-4` or `grok-4.3`. Submitting with an unsupported model creates an empty batch (“No requests in batch”).
+
+```bash
+.venv/bin/python pipeline/generation_pipeline/submit_generation_batch.py \
+  pipeline/generation_pipeline/generation_batches/generation_batch_YYYYMMDD_HHMMSS.jsonl \
+  --name ap_cybersecurity_mcq \
+  --model grok-4
+```
+
+Writes a sidecar `*_xai_batch.json` next to the JSONL with `batch_id`.
+
+Check status:
+
+```bash
+.venv/bin/python pipeline/generation_pipeline/submit_generation_batch.py \
+  --status batch_...
+```
+
+When complete, download results from [xAI Console → Batches](https://console.x.ai/team/default/batches). Mongo import from batch results is not automated yet.
 
 ---
 
@@ -87,5 +103,6 @@ Phase 1 does not include automated submit or Mongo import. Use `generate_new_que
 |------|---------|
 | `generate_new_question.py` | Interactive generation workflow |
 | `prepare_generation_batch.py` | Batch JSONL + manifest builder |
+| `submit_generation_batch.py` | Submit JSONL to xAI Batch API |
 | `batch_request_builder.py` | xAI JSONL row/manifest helpers |
 | `build_prompt.py` | Prompt template formatting |
