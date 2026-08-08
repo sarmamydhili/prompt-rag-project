@@ -580,17 +580,115 @@ def try_skill_map(doc: fitz.Document, lo_counts: Dict[str, int]) -> Dict[str, in
     return mapping
 
 
-def compute_weightage(periods: Dict[int, int], unit_num: int) -> Optional[int]:
-    if unit_num not in periods or not periods:
+def detect_ced_variant(doc: fitz.Document) -> str:
+    """
+    Two College Board CED layouts:
+
+    - career: AP Cybersecurity / AP Business with Personal Finance style —
+      single ~N CLASS PERIODS counts; weightage from period shares.
+    - standard: most other AP CEDs (e.g. Physics) — ranged class periods
+      ("tilde 12 hyphen 17" / "~12–17 CLASS PERIODS") plus N–M% AP Exam Weighting.
+    """
+    text = full_text(doc)
+    if re.search(r"SCENARIO\s+[1-9][A-Z]:", text):
+        return "career"
+
+    single = len(
+        re.findall(r"(?:[~∼]|Tilde)\s*\d{1,2}[\u2002\s]*CLASS\s+PERIODS", text, re.I)
+    )
+    ranged_class = len(
+        re.findall(
+            r"(?:[~∼]\s*\d+\s*[–-]\s*\d+[\u2002\s]*CLASS\s+PERIODS|"
+            r"tilde\s+\d+\s+hyphen\s+\d+)",
+            text,
+            re.I,
+        )
+    )
+
+    # Career CEDs use many single-count class-period markers.
+    if single >= 3 and ranged_class <= 1:
+        return "career"
+    if ranged_class >= 2:
+        return "standard"
+    if single >= 1:
+        return "career"
+    if re.search(r"\d{1,2}\s*[–-]\s*\d{1,2}%\s*AP\s*Exam\s*Weighting", text, re.I):
+        return "standard"
+    return "career"
+
+
+def discover_exam_weight_ranges(
+    doc: fitz.Document, unit_nums: List[int]
+) -> Dict[int, Tuple[int, int]]:
+    """Parse N–M% AP Exam Weighting per unit from Course at a Glance pages."""
+    allowed = set(unit_nums)
+    chunks: List[str] = []
+    for page in doc:
+        t = page.get_text()
+        if not re.search(r"AP\s*Exam\s*Weighting", t, re.I):
+            continue
+        if not re.search(r"\d{1,2}\s*[–-]\s*\d{1,2}%", t):
+            continue
+        if not re.search(r"Class\s*\n?\s*Periods|CLASS\s+PERIODS|Periods\s*\d", t, re.I):
+            continue
+        # Visual glance pages usually have Progress Check / tilde pacing / several UNITs
+        if (
+            "Progress Check" in t
+            or re.search(r"tilde\s+\d+", t, re.I)
+            or t.count("UNIT") >= 2
+        ):
+            chunks.append(t)
+
+    ranges: Dict[int, Tuple[int, int]] = {}
+    glance = "\n".join(chunks)
+    if not glance:
+        return ranges
+
+    for wm in re.finditer(
+        r"(\d{1,2})\s*[–-]\s*(\d{1,2})%\s*AP\s*Exam\s*Weighting", glance, re.I
+    ):
+        lo, hi = int(wm.group(1)), int(wm.group(2))
+        before = glance[max(0, wm.start() - 350) : wm.start()]
+        units = list(
+            re.finditer(
+                r"UNIT\s*\n(?:[A-Za-z][^\n]*(?:\n[A-Za-z/][^\n]*){0,3}\n\s*)?(\d+)\b",
+                before,
+            )
+        )
+        if not units:
+            continue
+        n = int(units[-1].group(1))
+        if n in allowed and n not in ranges:
+            ranges[n] = (lo, hi)
+    return ranges
+
+
+def compute_weightage(shares: Dict[int, float], unit_num: int) -> Optional[int]:
+    """Normalize positive share values to integers that sum to 100."""
+    if unit_num not in shares or not shares:
         return None
-    total = sum(periods.values())
+    total = sum(shares.values())
     if total <= 0:
         return None
-    weights = {n: round(v / total * 100) for n, v in periods.items()}
+    weights = {n: round(v / total * 100) for n, v in shares.items()}
     drift = 100 - sum(weights.values())
     if drift:
         weights[max(weights, key=weights.get)] += drift
     return weights[unit_num]
+
+
+def compute_weightage_from_periods(periods: Dict[int, int], unit_num: int) -> Optional[int]:
+    return compute_weightage({n: float(v) for n, v in periods.items()}, unit_num)
+
+
+def compute_weightage_from_exam_ranges(
+    ranges: Dict[int, Tuple[int, int]], unit_num: int
+) -> Optional[int]:
+    """Use midpoints of College Board exam-weight ranges, normalized to 100%."""
+    if unit_num not in ranges:
+        return None
+    mids = {n: (lo + hi) / 2.0 for n, (lo, hi) in ranges.items()}
+    return compute_weightage(mids, unit_num)
 
 
 def build_document(doc: fitz.Document, units_filter: Optional[List[int]] = None) -> dict:
@@ -602,6 +700,10 @@ def build_document(doc: fitz.Document, units_filter: Optional[List[int]] = None)
         topics = OrderedDict((k, v) for k, v in topics.items() if int(k.split(".")[0]) in set(units_filter))
 
     unit_names, periods = _unit_meta(doc, unit_nums)
+    variant = detect_ced_variant(doc)
+    exam_ranges = (
+        discover_exam_weight_ranges(doc, unit_nums) if variant == "standard" else {}
+    )
     framework = get_framework_slice(doc, list(topics.keys()))
     lo_counts = parse_lo_counts(doc, framework)
     topic_los, ek_map = parse_topic_pages(framework, subject, list(unit_names.values()))
@@ -653,7 +755,10 @@ def build_document(doc: fitz.Document, units_filter: Optional[List[int]] = None)
             "unit_code": f"Unit {n}",
             "topics": topics_out,
         }
-        weight = compute_weightage(periods, n)
+        if variant == "standard" and exam_ranges:
+            weight = compute_weightage_from_exam_ranges(exam_ranges, n)
+        else:
+            weight = compute_weightage_from_periods(periods, n)
         if weight is not None:
             unit_obj["weightage_percent"] = weight
         scenarios = parse_unit_scenarios(doc, n, subject, list(unit_names.values()))

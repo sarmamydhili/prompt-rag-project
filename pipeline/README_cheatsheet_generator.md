@@ -46,7 +46,37 @@ Ensure your MongoDB contains:
 
 ## Usage
 
-### Basic Usage
+### CLI (recommended)
+
+```bash
+cd /Users/sarmakompalli/prompt_rag_project
+
+# All units for a subject (saves to Mongo by default)
+.venv/bin/python pipeline/generate_cheatsheets.py --subject "AP Cybersecurity"
+
+# One unit
+.venv/bin/python pipeline/generate_cheatsheets.py \
+  --subject "AP Cybersecurity" \
+  --unit "Introduction to Security"
+
+# Provider / model / file output
+.venv/bin/python pipeline/generate_cheatsheets.py \
+  --subject "AP Statistics" \
+  --provider openai \
+  --model gpt-4o \
+  --save-to-file
+```
+
+| Arg | Default | Description |
+|-----|---------|-------------|
+| `--subject` | required | Subject in `course_framework` |
+| `--unit` / `--topic` | `*` | One unit, or `*` for all units |
+| `--provider` | `openai` | `openai`, `anthropic`, `gemini`, `deepseek`, `grok` |
+| `--model` | provider default | e.g. `gpt-4o` |
+| `--save-to-mongo` / `--no-save-to-mongo` | save | Write to `adaptive_concepts` |
+| `--save-to-file` / `--no-save-to-file` | no file | Optional JSON files |
+
+### Basic Usage (Python API)
 
 ```python
 from pipeline.generate_cheatsheets import CheatSheetGenerator

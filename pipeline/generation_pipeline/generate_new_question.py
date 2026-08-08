@@ -450,6 +450,10 @@ class GlobalContext:
                         try:
                             if model_name:
                                 question['model_name'] = model_name
+                            from pipeline.generation_pipeline.question_explanation_validation import (
+                                apply_explanation_review_flags,
+                            )
+                            question = apply_explanation_review_flags(question, auto_flag=True)
                             question['created_at'] = datetime.utcnow()
                             questions_collection.insert_one(question)
                         except Exception as e:
@@ -699,14 +703,26 @@ class QuestionGenerationWorkflow(BaseWorkflow):
             raise
 
     def _stamp_model_name(self, questions):
-        """Overwrite LLM-invented model_name with the actual configured model."""
+        """Stamp model name and validate/normalize choice explanations."""
+        from pipeline.generation_pipeline.question_explanation_validation import (
+            apply_explanation_review_flags,
+        )
+
         model_name = self.context.get_resolved_model_name()
-        if not model_name:
-            return questions
+        enriched = []
         for question in questions:
-            if isinstance(question, dict):
-                question['model_name'] = model_name
-        return questions
+            if not isinstance(question, dict):
+                continue
+            if model_name:
+                question["model_name"] = model_name
+            question = apply_explanation_review_flags(question, auto_flag=True)
+            if not question.get("explanation_validation_ok", True):
+                print(
+                    f"⚠️  Explanation validation issues: "
+                    f"{question.get('explanation_validation_errors')}"
+                )
+            enriched.append(question)
+        return enriched
 
     def process_and_write_content(self, contents):
         """Process and write content based on output mode"""

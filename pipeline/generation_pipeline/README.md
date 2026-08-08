@@ -93,7 +93,17 @@ Check status:
   --status batch_...
 ```
 
-When complete, download results from [xAI Console → Batches](https://console.x.ai/team/default/batches). Mongo import from batch results is not automated yet.
+When complete, download results from [xAI Console → Batches](https://console.x.ai/team/default/batches), parse to JSON, then import:
+
+```bash
+.venv/bin/python pipeline/generation_pipeline/import_generated_questions.py \
+  generated_questions/<parsed>.json \
+  --model-name grok-4 \
+  --batch-id batch_... \
+  --dual-write-wrong-choices
+```
+
+This stamps metadata, validates `correct_choice_explanation` / `wrong_choice_explanations`, flags incomplete items, and optionally dual-writes to `wrong_choice_explanations`.
 
 ---
 
@@ -104,5 +114,7 @@ When complete, download results from [xAI Console → Batches](https://console.x
 | `generate_new_question.py` | Interactive generation workflow |
 | `prepare_generation_batch.py` | Batch JSONL + manifest builder |
 | `submit_generation_batch.py` | Submit JSONL to xAI Batch API |
+| `import_generated_questions.py` | Mongo import + explanation validation |
+| `question_explanation_validation.py` | Normalize/flag correct + wrong explanations |
 | `batch_request_builder.py` | xAI JSONL row/manifest helpers |
 | `build_prompt.py` | Prompt template formatting |

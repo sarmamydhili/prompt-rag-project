@@ -64,3 +64,12 @@ python scripts/ap_ced/extract_ced.py \
 Optional fields (`skill_categories`, topic `scenario`, LO `skill_category`,
 unit `scenarios`, `weightage_percent`) are omitted when the PDF does not
 contain that content.
+
+## Weightage variants
+
+The extractor auto-detects two CED layouts:
+
+- **Career** (Cybersecurity, Business with Personal Finance): unit
+  `weightage_percent` from suggested class-period shares.
+- **Standard** (most other AP CEDs, e.g. Physics): from Course at a Glance
+  `N–M% AP Exam Weighting` midpoints, normalized to sum to 100.

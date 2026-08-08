@@ -56,6 +56,9 @@ Each question must include:
 - A complex question stem that requires evaluation of multiple concepts
 - Four multiple-choice options (labeled A, B, C, D) that are equally plausible
 - The correct answer choice (provide only the label, e.g., "A")
+- correct_choice_explanation: why the keyed answer is correct (why_correct, key_concept)
+- wrong_choice_explanations: for each INCORRECT letter only — why_wrong, confusion_source, remediation_tip, mistake_type
+  (mistake_type must be one of: formula_error, concept_confusion, calculation_error, misread_question, partial_correct, unit_or_notation_error)
 - Bloom's Taxonomy level (Evaluating) and level number (5)
 - topic
 - skill_name concatenating bloom level and topic as "Evaluating-<topic>"
@@ -91,6 +94,13 @@ If a question requires a diagram:
 4. Sophisticated approach comparison: "Which approach is most effective for this complex problem, considering [factor A], [factor B], and [factor C]?"
 5. Advanced decision justification: "What is the strongest justification for choosing [option] in this complex scenario, considering [concept A], [concept B], and [concept C]?"
 
+
+### Choice Explanations (REQUIRED):
+- For every question, explain why the correct answer is right (`correct_choice_explanation`).
+- For every incorrect option, explain why it is wrong (`wrong_choice_explanations`).
+- `wrong_choice_explanations` MUST include keys for all incorrect letters only (never the correct_answer letter).
+- Keep explanations specific to the stem and options; do not invent a different correct answer than `correct_answer`.
+
 ### Expected JSON Output:
 You MUST include the model name that generated each question in the output.
 Return a JSON object with the following structure:
@@ -107,6 +117,30 @@ Return a JSON object with the following structure:
         "D. Option D text"
       ],
       "correct_answer": "A",
+      "correct_choice_explanation": {{
+        "why_correct": "Clear explanation of why the correct option is right for this question.",
+        "key_concept": "Primary concept or skill this item assesses."
+      }},
+      "wrong_choice_explanations": {{
+        "B": {{
+          "why_wrong": "Why this distractor is incorrect in context.",
+          "confusion_source": "Likely misconception that makes this choice tempting.",
+          "remediation_tip": "What the student should review or check.",
+          "mistake_type": "concept_confusion"
+        }},
+        "C": {{
+          "why_wrong": "Why this distractor is incorrect in context.",
+          "confusion_source": "Likely misconception that makes this choice tempting.",
+          "remediation_tip": "What the student should review or check.",
+          "mistake_type": "concept_confusion"
+        }},
+        "D": {{
+          "why_wrong": "Why this distractor is incorrect in context.",
+          "confusion_source": "Likely misconception that makes this choice tempting.",
+          "remediation_tip": "What the student should review or check.",
+          "mistake_type": "misread_question"
+        }}
+      }},
       "level": "Evaluating",
       "level_num": 5,
       "skill": <topic>,

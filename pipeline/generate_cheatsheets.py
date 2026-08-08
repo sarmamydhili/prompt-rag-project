@@ -1,9 +1,14 @@
 import json
 import os
+import sys
 import configparser
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 # Import pipeline utilities
 from pipeline.pipeline_utils.mongo_operations import MongoOperations
@@ -663,35 +668,113 @@ class CheatSheetGenerator:
 
 
 def main():
-    """Main function to demonstrate usage"""
-    
-    # Configuration
+    """CLI entry point for cheat sheet generation."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate AP cheat sheets from course_framework units",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # All units for a subject (default)
+  .venv/bin/python pipeline/generate_cheatsheets.py --subject "AP Cybersecurity"
+
+  # One unit
+  .venv/bin/python pipeline/generate_cheatsheets.py \\
+    --subject "AP Cybersecurity" --unit "Introduction to Security"
+
+  # Grok, also save JSON files
+  .venv/bin/python pipeline/generate_cheatsheets.py \\
+    --subject "AP Statistics" --provider grok --model grok-3-latest --save-to-file
+""",
+    )
+    parser.add_argument(
+        "--subject",
+        required=True,
+        help='Subject name as stored in course_framework (e.g. "AP Cybersecurity")',
+    )
+    parser.add_argument(
+        "--unit",
+        "--topic",
+        dest="unit",
+        default="*",
+        help='Unit/topic name, or "*" for all units (default: *)',
+    )
+    parser.add_argument(
+        "--provider",
+        default="openai",
+        choices=["openai", "anthropic", "gemini", "deepseek", "grok"],
+        help="LLM provider (default: openai)",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Model id (default: provider default from config, e.g. gpt-4o)",
+    )
+    parser.add_argument(
+        "--save-to-mongo",
+        dest="save_to_mongo",
+        action="store_true",
+        default=True,
+        help="Save to MongoDB adaptive_concepts (default: True)",
+    )
+    parser.add_argument(
+        "--no-save-to-mongo",
+        dest="save_to_mongo",
+        action="store_false",
+        help="Do not write to MongoDB",
+    )
+    parser.add_argument(
+        "--save-to-file",
+        dest="save_to_file",
+        action="store_true",
+        default=False,
+        help="Also write JSON files (default: False)",
+    )
+    parser.add_argument(
+        "--no-save-to-file",
+        dest="save_to_file",
+        action="store_false",
+        help="Do not write JSON files",
+    )
+    args = parser.parse_args()
+
+    default_models = {
+        "openai": "gpt-4o",
+        "anthropic": "claude-3-5-sonnet-20241022",
+        "gemini": "gemini-1.5-pro",
+        "deepseek": "deepseek-chat",
+        "grok": "grok-3-latest",
+    }
+    model = args.model or default_models.get(args.provider)
+
     config = {
         "openai_llm_model": "gpt-4o",
         "anthropic_llm_model": "claude-3-5-sonnet-20241022",
         "gemini_llm_model": "gemini-1.5-pro",
         "deepseek_llm_model": "deepseek-chat",
-        "grok_llm_model": "grok-3"
+        "grok_llm_model": "grok-3-latest",
     }
-    
-    # Initialize generator
+
     generator = CheatSheetGenerator(config)
-    
-    # Example usage - single topic
-    result = generator.run_workflow(
-        subject="AP Statistics",
-        topic="*",
-        provider="openai",
-        model="gpt-4o",
-        save_to_mongo=True,
-        save_to_file=False
-    )
-    
-    if result["workflow_success"]:
-        print("\n🎉 Cheat sheet generated successfully!")
-        #print(f"Final result: {result['final_result']}")
-    else:
-        print(f"\n❌ Workflow failed: {result['error']}")
-    
+    try:
+        result = generator.run_workflow(
+            subject=args.subject,
+            topic=args.unit,
+            provider=args.provider,
+            model=model,
+            save_to_mongo=args.save_to_mongo,
+            save_to_file=args.save_to_file,
+        )
+        if result.get("workflow_success"):
+            print("\nCheat sheet generation completed successfully!")
+            return 0
+        print(f"\nWorkflow failed: {result.get('error')}")
+        return 1
+    finally:
+        generator.close_connections()
+
+
 if __name__ == "__main__":
-    main() 
+    raise SystemExit(main())
+ 

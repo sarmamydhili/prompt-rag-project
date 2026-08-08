@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../adaptive-learning-utils"
+		}
+	],
+	"settings": {
+		"terminal.integrated.scrollback": -1
+	}
+}
