@@ -41,6 +41,10 @@ data/
 *.json
 *.parquet
 
+# pptx_tts pipeline data
+pptx_tts/input/
+pptx_tts/output/
+
 # Generated Questions
 generated_questions/
 pipeline/generation_pipeline/generation_batches/
@@ -50,7 +54,6 @@ pipeline/generation_pipeline/generation_batches/
 logs/
 diagram*.*
 *.png
-
 # OS
 .DS_Store
 Thumbs.db

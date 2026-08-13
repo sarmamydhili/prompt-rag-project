@@ -1,3 +1,4 @@
 python-pptx
 openai
 python-dotenv
+mutagen

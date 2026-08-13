@@ -14,6 +14,7 @@ pptx_tts/
   output/         # narrated .pptx output (Phase 2)
   main.py         # Phase 1: notes → MP3
   embed_audio.py  # Phase 2: MP3 → PowerPoint
+  set_timings.py  # Phase 3: MP3 duration → auto-advance
   requirements.txt
   .env
   README.md
@@ -125,6 +126,8 @@ audio/
 
 Only slides with meaningful presenter notes get an MP3. Slides without notes are skipped.
 
+A leading `NARRATION:` label on its own line (or inline at the start of the first line) is stripped before TTS. The PowerPoint notes themselves are not modified.
+
 ## Summary
 
 At the end of each run, the script prints counts for slides processed, audio generated, existing audio skipped, slides without notes, and errors.
@@ -177,3 +180,54 @@ Use `TEST_MODE = True` to embed audio on a few slides first and verify playback 
 ## Phase 2 summary
 
 The script prints counts for slides processed, audio embedded, slides without MP3, and errors.
+
+---
+
+# Phase 3: Auto-advance slides by MP3 duration
+
+After Phase 2, run:
+
+```bash
+pip install -r requirements.txt   # installs mutagen if needed
+python set_timings.py
+```
+
+This reads the Phase 2 file from `output/` (e.g. `MyDeck_with_audio.pptx`) and writes:
+
+```
+output/MyDeck_with_audio_timed.pptx
+```
+
+## Phase 3 behavior
+
+- Sets each slide to **auto-advance after** its MP3 length + a small buffer
+- Slides **without** MP3 use a default duration (3 seconds by default)
+- **Click advance stays enabled** by default — you can still click ahead before the timer
+- Does not modify `input/` or the Phase 2 `*_with_audio.pptx` file
+
+## Phase 3 settings
+
+Open `set_timings.py`:
+
+```python
+BUFFER_MS = 500                  # extra pause after narration ends
+DEFAULT_SLIDE_DURATION_MS = 3000   # slides with no MP3
+ALLOW_CLICK_ADVANCE = True         # False = timed only, no click
+TEST_MODE = False
+TEST_SLIDES = [1, 5, 10]
+```
+
+## Verify in PowerPoint
+
+1. Open the `*_timed.pptx` file from `output/`
+2. Select a slide → **Transitions** tab → confirm **After** is set
+3. Start slideshow — slide should advance automatically when the timer expires
+4. Click should still work if `ALLOW_CLICK_ADVANCE = True`
+
+## Full pipeline
+
+```bash
+python main.py          # Phase 1: generate MP3s
+python embed_audio.py   # Phase 2: embed audio
+python set_timings.py   # Phase 3: set auto-advance
+```

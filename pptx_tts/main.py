@@ -39,6 +39,9 @@ PLACEHOLDER_PATTERNS = [
     re.compile(r"^click to edit notes\.?$", re.IGNORECASE),
 ]
 
+NARRATION_LABEL_LINE = re.compile(r"^NARRATION:?\s*$", re.IGNORECASE)
+NARRATION_LABEL_PREFIX = re.compile(r"^NARRATION:\s*", re.IGNORECASE)
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -69,10 +72,29 @@ def find_powerpoint() -> Path:
     return pptx_files[0]
 
 
+def strip_narration_label(text: str) -> str:
+    """Remove leading NARRATION: label from presenter notes."""
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    if not lines:
+        return text
+
+    if NARRATION_LABEL_LINE.match(lines[0].strip()):
+        lines = lines[1:]
+    elif NARRATION_LABEL_PREFIX.match(lines[0]):
+        lines[0] = NARRATION_LABEL_PREFIX.sub("", lines[0], count=1)
+
+    return "\n".join(lines)
+
+
 def clean_narration(text: str) -> str:
     """Lightweight cleanup: trim, collapse whitespace, normalize blank lines."""
     if not text:
         return ""
+
+    text = strip_narration_label(text)
 
     lines = [line.strip() for line in text.splitlines()]
     cleaned_lines = []
