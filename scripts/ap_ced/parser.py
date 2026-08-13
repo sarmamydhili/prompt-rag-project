@@ -36,22 +36,45 @@ def full_text(doc: fitz.Document) -> str:
 
 def derive_subject(doc: fitz.Document) -> str:
     """Derive 'AP …' subject name from the cover pages."""
-    cover = "\n".join(page.get_text() for page in doc[:3])
-    # Normalize trademark / odd spaces
+    cover = "\n".join(page.get_text() for page in doc[:5])
     cover_n = cover.replace("®", " ").replace("\u2002", " ").replace("\u2001", " ")
+
+    # Prefer explicit title blocks (subject on its own line above the document type).
+    for label in (
+        r"COURSE\s+AND\s+EXAM\s+DESCRIPTION",
+        r"COURSE\s+FRAMEWORK",
+    ):
+        matches = list(
+            re.finditer(
+                rf"(?im)^AP\s+(.+?)\s*\n+\s*{label}\b",
+                cover_n,
+            )
+        )
+        if matches:
+            name = normalize(matches[-1].group(1))
+            name = re.split(
+                r"\b(?:INCLUDES|For Use Beginning|Pilot Course Guide|V\.\d+)\b",
+                name,
+                maxsplit=1,
+            )[0].strip()
+            if not name.lower().startswith("ap"):
+                name = f"AP {name}"
+            return normalize(name)
+
+    # Fallback: single-line "AP … COURSE AND EXAM DESCRIPTION"
     m = re.search(
         r"AP\s+(.+?)\s+COURSE\s+AND\s+EXAM\s+DESCRIPTION",
         cover_n,
         re.I | re.S,
     )
-    if not m:
-        raise ValueError("Could not derive AP subject from PDF cover")
-    name = normalize(m.group(1))
-    # Drop trailing junk
-    name = re.split(r"\bINCLUDES\b", name, maxsplit=1)[0].strip()
-    if not name.lower().startswith("ap"):
-        name = f"AP {name}"
-    return normalize(name)
+    if m:
+        name = normalize(m.group(1))
+        name = re.split(r"\bINCLUDES\b", name, maxsplit=1)[0].strip()
+        if not name.lower().startswith("ap"):
+            name = f"AP {name}"
+        return normalize(name)
+
+    raise ValueError("Could not derive AP subject from PDF cover")
 
 
 def is_unit_glance_page(text: str) -> bool:

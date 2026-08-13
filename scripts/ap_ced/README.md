@@ -1,8 +1,9 @@
 # AP CED → course_framework extractor
 
-Takes a College Board CED PDF, derives the AP subject from the cover, extracts
-units / topics / learning objectives / essential knowledge (and scenarios /
-skills when present), writes JSON, and optionally inserts into MongoDB.
+Takes a College Board CED PDF (or pilot Course Framework PDF), derives the AP
+subject from the cover, extracts units / topics / learning objectives /
+essential knowledge (and scenarios / skills when present), writes JSON, and
+optionally inserts into MongoDB.
 
 ## Install
 
