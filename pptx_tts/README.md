@@ -2,23 +2,91 @@
 
 Phase 1 reads presenter notes and generates MP3 narration files.
 Phase 2 embeds those MP3s into a new PowerPoint file.
+Phase 3 sets auto-advance timings.
 
-**Neither phase modifies the original `.pptx` in `input/`.**
+**Recommended:** talk to the **Cursor agent** in chat (skill: `pptx-narration`) or use `agent_run.py`. The terminal REPL (`chat.py`) is optional.
 
 ## Project layout
 
 ```
 pptx_tts/
-  input/          # place one .pptx here
-  audio/          # generated slide_XXX.mp3 files (Phase 1)
-  output/         # narrated .pptx output (Phase 2)
-  main.py         # Phase 1: notes → MP3
-  embed_audio.py  # Phase 2: MP3 → PowerPoint
-  set_timings.py  # Phase 3: MP3 duration → auto-advance
+  agent_run.py    # CLI for the Cursor agent (recommended)
+  batch_narrate.py # Batch AI narration for section decks
+  chat.py         # optional terminal REPL
+  pptx_lib.py     # shared library
+  main.py         # Phase 1 batch script (legacy)
+  embed_audio.py  # Phase 2 batch script (legacy)
+  set_timings.py  # Phase 3 batch script (legacy)
   requirements.txt
   .env
   README.md
 ```
+
+When using `chat.py`, MP3s are stored next to your deck:
+
+```
+input/MyDeck.pptx
+input/MyDeck_audio/slide_001.mp3
+```
+
+Embed and timing changes save back to the **same** `.pptx` (a one-time `.pptx.bak` backup is created).
+
+---
+
+# Cursor agent (recommended)
+
+Ask in this agent chat window, for example:
+
+- "Show narration for slide 5 in Unit 2 Cybersecurity deck"
+- "Generate audio for slides 1-10 and embed in the same ppt"
+- "Run full pipeline on Unit 3 deck, all slides"
+
+The agent uses `agent_run.py` under the hood. Skill file: `.cursor/skills/pptx-narration/SKILL.md`
+
+---
+
+# Terminal chat (optional)
+
+Start an interactive session:
+
+```bash
+cd pptx_tts
+source venv/bin/activate
+python chat.py
+```
+
+Or run one command:
+
+```bash
+python chat.py open "input/MyDeck.pptx" slide 5 narration audio embed
+python chat.py -c 'open "input/MyDeck.pptx"; slides 1-3 narration audio embed timing'
+```
+
+## Chat commands
+
+```
+open path/to/deck.pptx          Open a PowerPoint file
+slide 5 narration               Show notes for slide 5
+slide 5 audio                   Generate MP3 from notes
+slide 5 narration audio embed   Show notes, generate MP3, attach to same ppt
+slides 1-10 audio embed timing  Batch process slides 1 through 10
+status                          Show open deck and MP3 count
+help
+quit
+```
+
+## Action modes
+
+| Actions | What happens |
+|---------|----------------|
+| `narration` | Print presenter notes (`NARRATION:` label stripped) |
+| `audio` | Generate MP3 via OpenAI TTS |
+| `embed` | Attach MP3 to the same `.pptx` (auto-play, hidden icon) |
+| `timing` | Set auto-advance from MP3 length |
+
+Combine actions in one line, e.g. `slide 5 narration audio embed timing`.
+
+---
 
 ## 1. Install dependencies
 
@@ -230,4 +298,42 @@ TEST_SLIDES = [1, 5, 10]
 python main.py          # Phase 1: generate MP3s
 python embed_audio.py   # Phase 2: embed audio
 python set_timings.py   # Phase 3: set auto-advance
+```
+
+Or use the chat assistant for the same steps on any deck path:
+
+```bash
+python chat.py open "input/MyDeck.pptx" slides all narration audio embed timing
+```
+
+---
+
+# AI narration generation + batch processing
+
+Generate elaborate student-friendly speaker scripts from slide content, then run TTS + embed + timing:
+
+```bash
+./venv/bin/python batch_narrate.py \
+  --sections-dir "/path/to/AP Cybersecurity/sections" \
+  --ppt "Unit1_PPTs/02_Topic 1.1 - Social Engineering.pptx" \
+  --slides 1 \
+  --test
+```
+
+Review the generated narration in the output, then run the full batch:
+
+```bash
+./venv/bin/python batch_narrate.py \
+  --sections-dir "/path/to/AP Cybersecurity/sections" \
+  --exclude "1.4 - AI-Based Attacks" \
+  --all
+```
+
+Single-deck agent command with AI narration:
+
+```bash
+./venv/bin/python agent_run.py \
+  --ppt "path/to/deck.pptx" \
+  --slides 1 \
+  --actions generate_narration,audio,embed,timing
 ```
