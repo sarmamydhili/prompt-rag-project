@@ -25,6 +25,10 @@ from pymongo import MongoClient
 from pipeline.generation_pipeline.question_explanation_validation import (
     apply_explanation_review_flags,
 )
+from pipeline.generation_pipeline.question_format import (
+    multiple_choices_is_dict,
+    normalize_mcq_document,
+)
 
 
 def _load_questions(path: str) -> List[Dict[str, Any]]:
@@ -83,10 +87,14 @@ def import_questions(
         "inserted": 0,
         "flagged_explanations": 0,
         "wrong_choice_docs": 0,
+        "normalized_choices": 0,
     }
 
     for raw in questions:
         q = dict(raw)
+        if multiple_choices_is_dict(q.get("multiple_choices")):
+            stats["normalized_choices"] += 1
+        q = normalize_mcq_document(q)
         if model_name:
             q["model_name"] = model_name
         if batch_id:

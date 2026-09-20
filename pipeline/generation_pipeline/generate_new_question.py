@@ -453,6 +453,10 @@ class GlobalContext:
                             from pipeline.generation_pipeline.question_explanation_validation import (
                                 apply_explanation_review_flags,
                             )
+                            from pipeline.generation_pipeline.question_format import (
+                                normalize_mcq_document,
+                            )
+                            question = normalize_mcq_document(question)
                             question = apply_explanation_review_flags(question, auto_flag=True)
                             question['created_at'] = datetime.utcnow()
                             questions_collection.insert_one(question)

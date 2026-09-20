@@ -119,6 +119,7 @@ Download xAI results → parse clean MCQs → import with validation:
 ```
 
 - Inserts into `dryrun_questions` with stamped `model_name` / `batch_id` / `source_file`
+- Normalizes `multiple_choices` to an array of `"A. …"` strings (dict LLM output is coerced on import)
 - Normalizes explanations; flags incomplete ones (`explanation_validation_failed`)
 - `--dual-write-wrong-choices` also writes valid embedded wrongs → `wrong_choice_explanations`
 

@@ -52,7 +52,11 @@ def shuffle_doc(doc):
     Returns (new_choices, new_correct, old_letter, letter_map) where letter_map
     maps old letters -> new letters by option text (for remapping explanations).
     """
-    choices = doc.get("multiple_choices") or []
+    from pipeline.generation_pipeline.question_format import (
+        normalize_multiple_choices_to_array,
+    )
+
+    choices = normalize_multiple_choices_to_array(doc.get("multiple_choices") or [])
     if len(choices) < 2:
         raise ValueError("Need at least 2 multiple_choices")
 
