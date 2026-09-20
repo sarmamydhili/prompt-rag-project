@@ -1,0 +1,26 @@
+Generate ONE CED-style stimulus set for AP Business with Personal Finance.
+
+### Unit / skill parameters
+- **Subject**: {subject}
+- **Subject Area**: {subject_area}
+- **Unit (skill / topic)**: {skill}
+- **Questions required**: exactly 3 (one Applying, one Analyzing, one Evaluating)
+- **Diagram requirement**: ALL 3 questions MUST have "requires_diagram": true and share ONE figure
+
+### Learning objectives for this unit (use these; do not invent new ones)
+{learning_objectives}
+
+{sample_questions_section}
+
+### Hard requirements
+1. Create a realistic business/personal-finance scenario with a shared quantitative figure (bar/pie/dual chart) that students must interpret.
+2. Put precise numeric series in figure_spec (and matching figure_data). Do NOT put the full numeric table in stimulus_text.
+3. Question sequence:
+   - sequence 1 → level Applying (level_num 3)
+   - sequence 2 → level Analyzing (level_num 4)
+   - sequence 3 → level Evaluating (level_num 5)
+4. Each stem must require using the figure (comparison, trend, tradeoff, or evaluation).
+5. Include correct_choice_explanation and wrong_choice_explanations for every question.
+6. Output ONLY the JSON object described in the system prompt (stimulus_set + questions).
+
+Generate the stimulus set now.

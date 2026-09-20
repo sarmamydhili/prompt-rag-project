@@ -76,7 +76,6 @@ def main() -> None:
     parser.add_argument("--uri", default="mongodb://localhost:27017")
     parser.add_argument("--database", default="adaptive_learning_docs")
     parser.add_argument("--collection", default="dryrun_questions")
-    parser.add_argument("--dual-write-wrong-choices", action="store_true")
     args = parser.parse_args()
 
     if not os.getenv("XAI_API_KEY"):
@@ -151,7 +150,6 @@ def main() -> None:
             model_name=args.model_name,
             batch_id=batch_id,
             source_file=str(out_path),
-            dual_write_wrong=args.dual_write_wrong_choices,
             dry_run=False,
         )
         print(json.dumps(stats, indent=2))

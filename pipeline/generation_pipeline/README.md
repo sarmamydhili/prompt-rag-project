@@ -99,11 +99,10 @@ When complete, download results from [xAI Console → Batches](https://console.x
 .venv/bin/python pipeline/generation_pipeline/import_generated_questions.py \
   generated_questions/<parsed>.json \
   --model-name grok-4 \
-  --batch-id batch_... \
-  --dual-write-wrong-choices
+  --batch-id batch_...
 ```
 
-This stamps metadata, validates `correct_choice_explanation` / `wrong_choice_explanations`, flags incomplete items, and optionally dual-writes to `wrong_choice_explanations`.
+This stamps metadata, validates `correct_choice_explanation` / `wrong_choice_explanations` on each question document, and flags incomplete items. Explanations are not written to a separate collection.
 
 ---
 

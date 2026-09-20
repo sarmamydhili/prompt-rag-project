@@ -54,9 +54,10 @@ cd "$PROMPT"
 .venv/bin/python pipeline/generation_pipeline/import_generated_questions.py \
   generated_questions/<parsed>.json \
   --model-name grok-4 \
-  --batch-id batch_... \
-  --dual-write-wrong-choices
+  --batch-id batch_...
 ```
+
+Wrong-choice explanations stay on each `dryrun_questions` document (`wrong_choice_explanations`). Do not dual-write to a separate collection.
 
 ## Shuffle
 
@@ -108,8 +109,8 @@ db.dryrun_questions.find({
 
 ## Wrong-choice explanations (optional backfill)
 
-Prefer embedded explanations from MCQ generation + `--dual-write-wrong-choices`.
-Use the OpenAI batch only for older questions missing wrongs:
+Prefer embedded `wrong_choice_explanations` from MCQ generation on the question doc.
+Use the OpenAI batch only for older questions missing those fields; write results back onto `dryrun_questions` (not a side collection):
 
 ```bash
 cd "$UTILS"

@@ -51,7 +51,7 @@ Copy and update as you go:
 3. Never change `correct_answer` automatically when hints disagree; flag for review only.
 4. xAI Batch: use `--model grok-4` (or `grok-4.3`). `grok-3-latest` creates empty batches.
 5. Prefer file→verify→Mongo for question batches; stamp real `model_name`; run explanation validation on import.
-6. MCQ generation prompts require `correct_choice_explanation` and `wrong_choice_explanations` on each question. Missing/invalid explanations → `modelReviewFlaggedForManual` with `modelReviewReason: explanation_validation_failed`.
+6. MCQ generation prompts require `correct_choice_explanation` and `wrong_choice_explanations` **on each question document** in `dryrun_questions`. Do not write explanations to a separate collection. Missing/invalid explanations → `modelReviewFlaggedForManual` with `modelReviewReason: explanation_validation_failed`.
 7. Keep a short run log in the chat: subject, skill IDs, batch IDs, inserted counts.
 
 Detailed commands: [reference.md](reference.md).
@@ -114,14 +114,13 @@ Download xAI results → parse clean MCQs → import with validation:
 .venv/bin/python pipeline/generation_pipeline/import_generated_questions.py \
   generated_questions/<parsed_file>.json \
   --model-name grok-4 \
-  --batch-id <BATCH_ID> \
-  --dual-write-wrong-choices
+  --batch-id <BATCH_ID>
 ```
 
 - Inserts into `dryrun_questions` with stamped `model_name` / `batch_id` / `source_file`
 - Normalizes `multiple_choices` to an array of `"A. …"` strings (dict LLM output is coerced on import)
+- Keeps `correct_choice_explanation` and `wrong_choice_explanations` **on the question document** (no separate explanations collection)
 - Normalizes explanations; flags incomplete ones (`explanation_validation_failed`)
-- `--dual-write-wrong-choices` also writes valid embedded wrongs → `wrong_choice_explanations`
 
 **Checkpoint:** Share counts (expected vs loaded, flagged explanations).
 
@@ -164,7 +163,9 @@ python3 batch_ai_submit/run_batch_generation.py \
 
 ## Step 8 — (Optional) Wrong-choice backfill
 
-Skip when Step 4 dual-wrote valid explanations. Use only to backfill older questions that lack embedded wrongs:
+Skip when Step 4 already embedded valid `wrong_choice_explanations` on each question.
+Use only to backfill **older** `dryrun_questions` docs that are missing embedded wrongs.
+Import must update the question documents in `dryrun_questions` — do **not** write a parallel `wrong_choice_explanations` collection.
 
 ```bash
 python3 batch_ai_submit/run_batch_wrong_choices.py \
@@ -188,10 +189,9 @@ cd /Users/sarmakompalli/prompt_rag_project
 
 Report:
 - Framework subject / unit count
-- Questions in `dryrun_questions` for subject
+- Questions in `dryrun_questions` with embedded `wrong_choice_explanations`
 - Explanation-validation flags
 - Hints count / key-mismatch flags
-- Wrong-choice docs count
 - Cheat sheets generated
 
 Review queries:
