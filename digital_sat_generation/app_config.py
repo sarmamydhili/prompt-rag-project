@@ -49,6 +49,7 @@ class DigitalSatConfig:
     enable_duplicate_check: bool = False
     task_name: str = "Digital SAT Reading and Writing"
     subject: str = "Reading and Writing"
+    test_label: str = "Digital SAT"
 
     log_level: str = "INFO"
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -147,6 +148,17 @@ class DigitalSatConfig:
         }
 
         DBConfig.initialize_from_context(cfg)
+        return cfg
+
+    @classmethod
+    def for_act(cls, config_path: Optional[str] = None) -> "DigitalSatConfig":
+        """Configuration for ACT Reading and Writing (same Mongo collection as Digital SAT RW)."""
+        cfg = cls.load(config_path)
+        cfg.task_name = "ACT Reading and Writing"
+        cfg.subject = "Reading and Writing"
+        cfg.test_label = "ACT"
+        cfg.prompt_version = "act-rw-passage-v1"
+        cfg.collection_name = "digital_sat_rw_questions"
         return cfg
 
     @property

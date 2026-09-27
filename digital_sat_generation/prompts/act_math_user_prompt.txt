@@ -1,0 +1,7 @@
+Write exactly {num_questions} original Enhanced ACT Mathematics items for form {form_id}.
+Use contexts about {theme}. Do not reuse stems from any other form.
+Return them in item_number order inside a single JSON object.
+
+Each item must use its assigned reporting category, difficulty, modeling flag, and correct_answer letter. Do not change those fields.
+
+{slots_block}

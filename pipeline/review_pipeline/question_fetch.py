@@ -29,6 +29,7 @@ def fetch_questions(context: ReviewContext) -> List[Dict]:
                 "requires_diagram": 1,
                 "learning_objectives": 1,
                 "level_num": 1,
+                "level": 1,
             },
         )
         if context.limit:

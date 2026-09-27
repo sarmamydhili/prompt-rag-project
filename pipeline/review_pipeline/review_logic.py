@@ -17,6 +17,8 @@ def compute_review_decision(
     db_answer: str,
     model_responses: Dict[str, Optional[str]],
     requires_diagram: bool = False,
+    *,
+    treat_diagram_as_normal: bool = False,
 ) -> ReviewDecision:
     """
     Option A: any disagreement with DB or uncertainty → manual review flag.
@@ -26,7 +28,7 @@ def compute_review_decision(
     if db_answer not in VALID_CHOICES:
         db_answer = db_answer or "N/A"
 
-    if requires_diagram:
+    if requires_diagram and not treat_diagram_as_normal:
         return ReviewDecision(
             recommended_answer=db_answer if db_answer in VALID_CHOICES else "",
             review_flag=True,

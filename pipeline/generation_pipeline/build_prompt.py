@@ -69,7 +69,9 @@ class PromptBuilder:
                 'learning_objectives': parameters.get('learning_objectives', []),
                 'num_questions': parameters.get('num_questions', 1),
                 'sample_questions_section': parameters.get('sample_questions_section', ''),
-                'bloom_levels': parameters.get('bloom_levels', [])
+                'bloom_levels': parameters.get('bloom_levels', []),
+                'bloom_level': parameters.get('bloom_level', ''),
+                'level_num': parameters.get('level_num', ''),
             }
             
             # Step 2: Format learning objectives

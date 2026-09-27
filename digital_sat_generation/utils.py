@@ -526,3 +526,95 @@ def permute_question_to_target_answer(
                 exp.get("relevant_text", []), result["stimulus"]
             )
     return repair_explanation_letter_references(result)
+
+
+def _parse_act_math_choice_bodies(multiple_choices: List[Any]) -> Dict[str, str]:
+    """Map A–D to option body text from ACT multiple_choices strings."""
+    text_by_key: Dict[str, str] = {}
+    for entry in multiple_choices or []:
+        text = str(entry).strip()
+        if len(text) < 2 or text[0].upper() not in CHOICE_LETTERS:
+            continue
+        letter = text[0].upper()
+        body = text[1:].lstrip()
+        if body.startswith("."):
+            body = body[1:].lstrip()
+        elif body.startswith(")"):
+            body = body[1:].lstrip()
+        text_by_key[letter] = body
+    return text_by_key
+
+
+def _format_act_math_multiple_choices(text_by_key: Dict[str, str]) -> List[str]:
+    return [f"{key}. {text_by_key[key]}" for key in CHOICE_LETTERS if key in text_by_key]
+
+
+def permute_act_math_mcq_to_target_answer(
+    question: Dict[str, Any],
+    target: str,
+    *,
+    validate_explanations: bool = True,
+) -> Dict[str, Any]:
+    """Reorder ACT Math multiple_choices so the correct body sits at target letter."""
+    import random
+
+    target = str(target).strip().upper()
+    if target not in CHOICE_LETTERS:
+        return question
+
+    result = dict(question)
+    text_by_key = _parse_act_math_choice_bodies(result.get("multiple_choices") or [])
+    if set(text_by_key.keys()) != set(CHOICE_LETTERS):
+        return result
+
+    current_correct = str(result.get("correct_answer", "")).strip().upper()
+    if current_correct not in CHOICE_LETTERS:
+        return result
+    if current_correct == target:
+        return result
+
+    correct_text = text_by_key[current_correct]
+    wrong_keys = [k for k in CHOICE_LETTERS if k != current_correct]
+    wrong_exps = result.get("wrong_choice_explanations", {}) or {}
+
+    other_slots = [k for k in CHOICE_LETTERS if k != target]
+    wrong_texts = [text_by_key[k] for k in wrong_keys]
+    random.shuffle(wrong_texts)
+
+    new_text_by_key: Dict[str, str] = {target: correct_text}
+    for slot, text in zip(other_slots, wrong_texts):
+        new_text_by_key[slot] = text
+
+    old_key_for_text = {text_by_key[k]: k for k in text_by_key}
+    new_wrong_exps: Dict[str, Any] = {}
+    for slot in other_slots:
+        old_key = old_key_for_text.get(new_text_by_key[slot])
+        if old_key and old_key != current_correct and old_key in wrong_exps:
+            new_wrong_exps[slot] = dict(wrong_exps[old_key])
+        elif old_key and old_key != current_correct:
+            new_wrong_exps[slot] = {
+                "why_wrong": "This choice does not satisfy the question.",
+                "mistake_type": "not_supported",
+            }
+
+    result["multiple_choices"] = _format_act_math_multiple_choices(new_text_by_key)
+    result["correct_answer"] = target
+    result["wrong_choice_explanations"] = _repair_wrong_choice_explanations(
+        {**result, "wrong_choice_explanations": new_wrong_exps}
+    )
+    result = repair_explanation_letter_references(result)
+
+    if not validate_explanations:
+        result["wrong_choices"] = dict(result.get("wrong_choice_explanations") or {})
+        return result
+
+    from pipeline.generation_pipeline.question_explanation_validation import (
+        validate_and_normalize_explanations,
+    )
+
+    normalized, errors = validate_and_normalize_explanations(result)
+    if not errors:
+        normalized["explanation_validation_ok"] = True
+        normalized.pop("explanation_validation_errors", None)
+    normalized["wrong_choices"] = dict(normalized.get("wrong_choice_explanations") or {})
+    return normalized

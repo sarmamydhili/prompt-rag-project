@@ -1,0 +1,19 @@
+Generate exactly {num_questions} original ACT Mathematics multiple-choice questions.
+
+Parameters:
+- Reporting category (domain): {skill}
+- Bloom level: {bloom_level} (level {level_num})
+- Subject: ACT Math
+- About {diagram_fraction} of items may include a diagram when it helps the mathematics.
+
+Learning objectives to cover across the set (each should appear at least once when possible):
+{learning_objectives}
+
+Return question_index values 1 through {num_questions} in order inside one JSON object.
+
+Correct-answer letter rotation (required): for question_index 1 use A, 2 use B, 3 use C, 4 use D, 5 use A, 6 use B, and so on (cycle A→B→C→D). The correct choice text must appear under that letter in multiple_choices.
+
+Bloom focus for {bloom_level}:
+{bloom_focus}
+
+Do not ask clarifying questions. Return JSON only.

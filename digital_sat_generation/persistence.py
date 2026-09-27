@@ -11,6 +11,12 @@ from pymongo.errors import OperationFailure
 
 from digital_sat_generation.app_config import DigitalSatConfig
 from digital_sat_generation.duplicate_checker import compute_content_hash
+from digital_sat_generation.act_schemas import (
+    ACT_DOMAIN_MYSQL_MAP,
+    ACT_TEST,
+    resolve_act_domain_from_document,
+    resolve_act_mysql_fields,
+)
 from digital_sat_generation.schemas import (
     SCHEMA_VERSION,
     resolve_domain_from_document,
@@ -97,18 +103,28 @@ class DigitalSatPersistence:
 
                 domain = domain_for_skill(skill_enum)
 
-        mysql_fields = resolve_mysql_fields(domain) if domain else {}
+        test_label = doc.get("test") or getattr(self.config, "test_label", "Digital SAT")
+        is_act = test_label == ACT_TEST or self.config.test_label == ACT_TEST
+
+        if is_act:
+            act_domain = resolve_act_domain_from_document(doc) or domain
+            if act_domain and act_domain in ACT_DOMAIN_MYSQL_MAP:
+                domain = act_domain
+            mysql_fields = resolve_act_mysql_fields(domain) if domain in ACT_DOMAIN_MYSQL_MAP else {}
+        else:
+            mysql_fields = resolve_mysql_fields(domain) if domain else {}
 
         doc.update(
             {
                 "content_type": "digital_sat_rw_question",
                 "schema_version": SCHEMA_VERSION,
-                "test": "Digital SAT",
+                "test": test_label if is_act else "Digital SAT",
                 "section": "Reading and Writing",
                 "status": "draft",
                 "content_hash": content_hash,
-                "task_name": self.config.task_name,
+                "task_name": self.config.task_name if is_act else self.config.task_name,
                 "Subject": self.config.subject,
+                "subject": self.config.subject,
                 "item_skill": item_skill,
                 "passage_topic": passage_topic,
                 "generation_metadata": {

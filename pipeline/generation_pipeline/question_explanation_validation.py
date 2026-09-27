@@ -125,6 +125,34 @@ def validate_and_normalize_explanations(
     return q, errors
 
 
+PLACEHOLDER_WRONG_ENTRY: Dict[str, str] = {
+    "why_wrong": "",
+    "confusion_source": "",
+    "remediation_tip": "",
+    "mistake_type": "concept_confusion",
+}
+
+
+def attach_placeholder_wrong_explanations(question: Dict[str, Any]) -> Dict[str, Any]:
+    """Fill empty wrong-choice slots so downstream UI has keys; skip validation flags."""
+    q = dict(question)
+    correct = normalize_answer_letter(q.get("correct_answer"))
+    if not correct:
+        return q
+    expected_wrong = [L for L in CHOICE_LETTERS if L != correct]
+    placeholders = {
+        letter: dict(PLACEHOLDER_WRONG_ENTRY) for letter in expected_wrong
+    }
+    q["wrong_choice_explanations"] = placeholders
+    q["wrong_choices"] = placeholders
+    q["wrong_choice_explanations_pending"] = True
+    q["explanation_validation_ok"] = False
+    q.pop("modelReviewFlaggedForManual", None)
+    q.pop("modelReviewReason", None)
+    q.pop("modelReviewDetails", None)
+    return q
+
+
 def apply_explanation_review_flags(
     question: Dict[str, Any],
     *,

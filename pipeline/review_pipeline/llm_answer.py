@@ -60,20 +60,13 @@ def _subject_guidance(subject: Optional[str]) -> str:
     return f"\n- Apply rigorous reasoning appropriate for {subject}."
 
 
-def get_llm_answer(
-    llm_connections: LLMConnections,
+def build_review_prompts(
     question: str,
     choices: List[str],
-    provider: str,
-    temperature: float = 0.0,
-    max_retries: int = 2,
     subject: Optional[str] = None,
     learning_objectives: Optional[List[str]] = None,
-) -> Optional[str]:
-    if not choices or len(choices) < 4:
-        logger.warning("Question requires at least 4 multiple choice options")
-        return None
-
+) -> tuple:
+    """System and user prompts used by the live reviewer and the OpenAI batch."""
     objectives_text = ""
     if learning_objectives:
         objectives_text = "\nLearning Objectives:\n" + "\n".join(
@@ -96,6 +89,29 @@ C) {choices[2]}
 D) {choices[3]}
 
 Respond with only: {{"answer": "X"}}"""
+    return system_prompt, user_prompt
+
+
+def get_llm_answer(
+    llm_connections: LLMConnections,
+    question: str,
+    choices: List[str],
+    provider: str,
+    temperature: float = 0.0,
+    max_retries: int = 2,
+    subject: Optional[str] = None,
+    learning_objectives: Optional[List[str]] = None,
+) -> Optional[str]:
+    if not choices or len(choices) < 4:
+        logger.warning("Question requires at least 4 multiple choice options")
+        return None
+
+    system_prompt, user_prompt = build_review_prompts(
+        question,
+        choices,
+        subject=subject,
+        learning_objectives=learning_objectives,
+    )
 
     for attempt in range(max_retries + 1):
         response = llm_connections.call_llm_api(
