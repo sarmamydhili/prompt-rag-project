@@ -123,9 +123,9 @@ flowchart TD
 
   E1 --> P0
 
-  subgraph phaseF [Phase F — Optional publish]
-    P0[Cheat sheets]
-    P1[Bundle SQL promote staging]
+  subgraph phaseF [Phase F — Publish]
+    P0[Cheat sheets to adaptive_concepts]
+    P1[Optional SQL bundle and promote staging]
     P0 --> P1
   end
 
@@ -231,6 +231,7 @@ sequenceDiagram
 | Rinse | `scripts/act_math_rinse_cycle.py`, `docs/UNIVERSAL_QUESTION_RINSE.md` |
 | Hints | `adaptive-learning-utils/batch_ai_submit/run_batch_generation.py`, `submit_act_math_hints_batch.py` |
 | Explanations | `submit_act_math_explanation_batch.py`, `run_batch_wrong_choices.py` (AP utils) |
+| Cheat sheets | `pipeline/generate_cheatsheets.py --subject "<Subject>" --unit "*"` → `adaptive_concepts` |
 
 Future work: one orchestrator CLI (`subject_pipeline run --config configs/ap_chemistry.yaml`) that reads subject adapter config and runs phases A–F with shared poll/state.
 

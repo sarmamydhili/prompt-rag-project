@@ -13,6 +13,9 @@ Phase 2 — QC
 Phase 3 — Hints (OpenAI batch)
   submit_act_math_hints_batch.py --submit → poll → --download-and-process --import-to-mongo
 
+Phase 4 — Cheat sheets (OpenAI sync, one per framework unit)
+  pipeline/generate_cheatsheets.py --subject "ACT Math" --unit "*"
+
 This script prints commands and optionally runs prepare/submit steps.
 """
 
@@ -38,7 +41,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--phase",
-        choices=["generation", "import", "qc", "hints", "all"],
+        choices=["generation", "import", "qc", "hints", "cheatsheets", "all"],
         required=True,
     )
     parser.add_argument("--dry-run", action="store_true")
@@ -108,6 +111,14 @@ def main() -> int:
         "--download-and-process",
         "--import-to-mongo",
     ]
+    cheatsheets = [
+        str(PY),
+        "pipeline/generate_cheatsheets.py",
+        "--subject",
+        "ACT Math",
+        "--unit",
+        "*",
+    ]
 
     if args.phase in ("generation", "all"):
         print("\n=== Phase 1: Generation ===")
@@ -134,6 +145,10 @@ def main() -> int:
         print("\n=== Phase 3: Hints (OpenAI batch) ===")
         _run(hints_submit if args.submit else hints, args.dry_run)
         _run(hints_import, args.dry_run)
+
+    if args.phase in ("cheatsheets", "all"):
+        print("\n=== Phase 4: Cheat sheets (all units) ===")
+        _run(cheatsheets, args.dry_run)
 
     return 0
 

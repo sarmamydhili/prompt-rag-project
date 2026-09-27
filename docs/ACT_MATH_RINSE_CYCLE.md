@@ -67,8 +67,14 @@ After iteration 3 or score ≥ 90%:
 | F1 | Submit OpenAI **wrong-choice explanations** batch (only if keys stable) |
 | F2 | Poll → `--apply` |
 | F3 | Optional: OpenAI **answer** QC batch for audit CSV (not used for 90% gate) |
+| F4 | **Cheat sheets** — one per framework unit → `adaptive_concepts` (same as AP Step 9) |
 
 Wrong-choice explanations **last** — they assume `correct_answer` is final.
+
+```bash
+.venv/bin/python pipeline/generate_cheatsheets.py --subject "ACT Math" --unit "*"
+# Or: scripts/run_act_math_load_phases.py --phase cheatsheets
+```
 
 ---
 
